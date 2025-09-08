@@ -14,9 +14,9 @@ import React, { useEffect, useMemo, useState } from "react";
 // ====== CONFIG ======
 const BRAND = { name: "Willow", accent: "#14b8a6" } as const;
 // Прописываем твой реальный GAS WebApp URL
-const BACKEND_URL =
-  "https://script.google.com/macros/s/AKfycbyBNpuyz3JqJ216A1pGtoHYbXZtFVBcpnKhs6x7XlUHZj6YU7E7nw6-Tv5pGZBRiBvX/exec";
 
+const BACKEND_URL =
+  "https://script.google.com/macros/s/AKfycbywkMwd4Csz_pWP5Nik3UvPrfhQ_crHd9XSVJPc15DG-XZCMfzPS2JpRN5x3MalfzDF/exec";
 // Google Sheets (OpenSheet JSON)
 const SHEET_JSON_URLS = {
   menu: "https://opensheet.elk.sh/1DQ00jxOF5QnIxNnYhnRdOqB9DXeRLB65L3eF6pSQMHw/menu",
