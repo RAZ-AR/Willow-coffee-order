@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 
 /**
- * Willow Telegram Mini-App — Frontend (MVP) — v5 FULL
- * - Menu & ADS из Google Sheets (OpenSheet)
- * - Минималистичный UI, карточки центрированы, одна кнопка “Выбрать”
+ * Willow Telegram Mini-App — Frontend (MVP) — v5 FULL (Sheets: MENU/ADS)
+ * - Данные: Google Sheets через OpenSheet (листы: MENU, ADS)
+ * - Карточки центрированы, на карточке одна кнопка “Выбрать” (EN: Select, SR: Izaberi, RU: Выбрать)
  * - Корзина: +/-/Remove; при qty=0 позиция удаляется
  * - When: Now / +10 / +20; столы активны только при Now
  * - Payment: Cash / Card / Stars
@@ -13,13 +13,14 @@ import React, { useEffect, useMemo, useState } from "react";
 
 // ====== CONFIG ======
 const BRAND = { name: "Willow", accent: "#14b8a6" } as const;
-// Прописываем твой реальный GAS WebApp URL
 
+// Прописываем твой реальный GAS WebApp URL
 const BACKEND_URL =
   "https://script.google.com/macros/s/AKfycbywkMwd4Csz_pWP5Nik3UvPrfhQ_crHd9XSVJPc15DG-XZCMfzPS2JpRN5x3MalfzDF/exec";
-// Google Sheets (OpenSheet JSON)
+
+// Google Sheets (OpenSheet JSON) — ВАЖНО: ЛИСТЫ В КАПС (MENU, ADS)
 const SHEET_JSON_URLS = {
-  menu: "https://opensheet.elk.sh/1DQ00jxOF5QnIxNnYhnRdOqB9DXeRLB65L3eF6pSQMHw/menu",
+  menu: "https://opensheet.elk.sh/1DQ00jxOF5QnIxNnYhnRdOqB9DXeRLB65L3eF6pSQMHw/MENU",
   ads: "https://opensheet.elk.sh/1DQ00jxOF5QnIxNnYhnRdOqB9DXeRLB65L3eF6pSQMHw/ADS",
 } as const;
 
@@ -97,36 +98,22 @@ const pickFrom = (row: Record<string, any>, keys: string[], fallback = "") => {
   return fallback;
 };
 
+// ====== МАППЕРЫ ПОД ТВОИ КОЛОНКИ ======
+// MENU → Category | English | Russian | Serbian | Volume | Price (RSD) | Ingredients | images
 const mapMenu = (rows: any[]): MenuItem[] => {
   return (rows || []).map((r: any, i: number) => {
     const id = String(pickFrom(r, ["id", "ID", "Id"], `m_${i}`));
-    const category = String(
-      pickFrom(r, ["категория", "category", "Category"], "Other"),
-    );
-    const title_en = String(
-      pickFrom(r, ["Английский", "English", "title_en"], ""),
-    );
-    const title_ru = String(
-      pickFrom(r, ["Русский", "Russian", "title_ru"], title_en),
-    );
-    const title_sr = String(
-      pickFrom(r, ["Сербский", "Serbian", "title_sr"], title_en),
-    );
-    const volume = String(pickFrom(r, ["Объем", "Volume", "volume"], ""));
-    const price = toNumber(
-      pickFrom(
-        r,
-        ["Стоимость (RSD)", "Стоимость", "Price", "price", "Цена", "RSD"],
-        0,
-      ),
-      0,
-    );
-    const comp = String(
-      pickFrom(r, ["Состав", "Composition", "composition"], ""),
-    );
-    const image = String(
-      pickFrom(r, ["image", "Image", "Фото", "photo", "Фото URL"], ""),
-    );
+    const category = String(pickFrom(r, ["Category"], "Other"));
+
+    const title_en = String(pickFrom(r, ["English"], ""));
+    const title_ru = String(pickFrom(r, ["Russian"], title_en));
+    const title_sr = String(pickFrom(r, ["Serbian"], title_en));
+
+    const volume = String(pickFrom(r, ["Volume"], ""));
+    const price = toNumber(pickFrom(r, ["Price (RSD)", "Price", "RSD"], 0), 0);
+    const comp = String(pickFrom(r, ["Ingredients"], ""));
+    const image = String(pickFrom(r, ["images", "image", "Image"], ""));
+
     return {
       id,
       category,
@@ -143,13 +130,14 @@ const mapMenu = (rows: any[]): MenuItem[] => {
   });
 };
 
+// ADS → ADS | image_ads | description
 const mapAds = (rows: any[]): AdItem[] => {
   return (rows || []).map((r: any, i: number) => ({
-    id: String(pickFrom(r, ["id", "ID", "Id"], `a_${i}`)),
-    title: String(pickFrom(r, ["title", "Title", "Заголовок"], "")),
-    subtitle: String(pickFrom(r, ["subtitle", "Subtitle", "Подзаголовок"], "")),
-    image: String(pickFrom(r, ["image", "Image", "Картинка"], "")),
-    link: String(pickFrom(r, ["link", "Link", "Ссылка"], "")),
+    id: String(pickFrom(r, ["id", "ID", "ADS"], `a_${i}`)),
+    title: String(pickFrom(r, ["ADS", "Title"], "")),
+    subtitle: String(pickFrom(r, ["description", "Subtitle"], "")),
+    image: String(pickFrom(r, ["image_ads", "image", "Image"], "")),
+    link: String(pickFrom(r, ["link", "Link"], "")),
   }));
 };
 
@@ -247,15 +235,6 @@ export default function App() {
   // Registration & card lookup via backend (Telegram WebApp)
   useEffect(() => {
     (async () => {
-      if (!BACKEND_URL) {
-        // демо режим: если карты нет — поставим 1234
-        if (!cardNumber) {
-          const local = "1234";
-          setCardNumber(local);
-          localStorage.setItem(LS_KEYS.card, local);
-        }
-        return;
-      }
       try {
         const resp = await postJSON(BACKEND_URL, {
           action: "register",
@@ -284,13 +263,18 @@ export default function App() {
     () => ["All", ...Array.from(new Set(menu.map((m) => m.category)))],
     [menu],
   );
+
+  // (опционально) скрыть товары без цены — раскомментируй .filter(...)
   const items = useMemo(
     () =>
       activeCategory === "All"
         ? menu
-        : menu.filter((m) => m.category === activeCategory),
+        : menu.filter((m) => m.category === activeCategory) /*.filter(
+        (m) => toNumber(m.price, 0) > 0
+      )*/,
     [activeCategory, menu],
   );
+
   const total = useMemo(
     () =>
       Object.entries(cart).reduce((sum, [id, qty]) => {
@@ -887,7 +871,12 @@ function CartSheet({
       "currency should parse commas and text",
     );
     const m = mapMenu([
-      { Английский: "Test", категория: "Coffee", "Стоимость (RSD)": "1,200" },
+      {
+        English: "Test",
+        Category: "Coffee",
+        "Price (RSD)": "1,200",
+        Ingredients: "Water + Coffee",
+      },
     ]);
     console.assert(m[0].price === 1200, "menu price parse");
     let c: Record<string, number> = {};
