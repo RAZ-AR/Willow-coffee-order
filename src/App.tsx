@@ -1,17 +1,21 @@
 import React, { useEffect, useMemo, useState } from "react";
 
 /**
- * Willow Telegram Mini-App — Frontend (MVP)
- * Debug-fixed build (v4)
- * - Banner slider (autoplay + dots + swipe)
- * - Product cards: centered, single localized “Select” button
- * - Repeated taps increment qty; cart shows +/−/Remove; 0 removes item
- * - Safe price parsing from Google Sheets (OpenSheet)
- * - Stars: +1 per 350 RSD on checkout (demo)
+ * Willow Telegram Mini-App — Frontend (MVP) — v5 FULL
+ * - Menu & ADS из Google Sheets (OpenSheet)
+ * - Минималистичный UI, карточки центрированы, одна кнопка “Выбрать”
+ * - Корзина: +/-/Remove; при qty=0 позиция удаляется
+ * - When: Now / +10 / +20; столы активны только при Now
+ * - Payment: Cash / Card / Stars
+ * - Лояльность: регистрация/поиск карты, подсчёт звёзд (1⭐ / 350 RSD)
+ * - Заказ уходит на BACKEND_URL (GAS), он шлёт TG-уведомления и обновляет звёзды
  */
 
 // ====== CONFIG ======
 const BRAND = { name: "Willow", accent: "#14b8a6" } as const;
+// Прописываем твой реальный GAS WebApp URL
+const BACKEND_URL =
+  "https://script.google.com/macros/s/AKfycbyBNpuyz3JqJ216A1pGtoHYbXZtFVBcpnKhs6x7XlUHZj6YU7E7nw6-Tv5pGZBRiBvX/exec";
 
 // Google Sheets (OpenSheet JSON)
 const SHEET_JSON_URLS = {
@@ -149,10 +153,23 @@ const mapAds = (rows: any[]): AdItem[] => {
   }));
 };
 
-// Telegram WebApp fallback
+// HTTP helper — без CORS preflight
+async function postJSON<T = any>(url: string, body: any): Promise<T> {
+  const res = await fetch(url, {
+    method: "POST",
+    // ВАЖНО: text/plain — это "simple request", без preflight OPTIONS
+    headers: { "Content-Type": "text/plain;charset=UTF-8" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+// Telegram WebApp fallback (когда не в TG)
 const tg = (typeof window !== "undefined" &&
   (window as any).Telegram?.WebApp) || {
   initDataUnsafe: { user: { id: "demo", first_name: "Guest" } },
+  initData: null,
 };
 
 // Storage keys
@@ -195,13 +212,13 @@ export default function App() {
   const [stars, setStars] = useState<number>(() =>
     toNumber(localStorage.getItem(LS_KEYS.stars), 0),
   );
-  const [cardNumber] = useState<string>(
-    () => localStorage.getItem(LS_KEYS.card) || "1234",
+  const [cardNumber, setCardNumber] = useState<string>(
+    () => localStorage.getItem(LS_KEYS.card) || "",
   );
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [showCart, setShowCart] = useState<boolean>(false);
 
-  // Load data
+  // Load data (menu + ads)
   useEffect(() => {
     Promise.all([
       fetch(SHEET_JSON_URLS.menu)
@@ -226,6 +243,41 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem(LS_KEYS.stars, String(stars));
   }, [stars]);
+
+  // Registration & card lookup via backend (Telegram WebApp)
+  useEffect(() => {
+    (async () => {
+      if (!BACKEND_URL) {
+        // демо режим: если карты нет — поставим 1234
+        if (!cardNumber) {
+          const local = "1234";
+          setCardNumber(local);
+          localStorage.setItem(LS_KEYS.card, local);
+        }
+        return;
+      }
+      try {
+        const resp = await postJSON(BACKEND_URL, {
+          action: "register",
+          initData: (tg as any)?.initData || null,
+          user: (tg as any)?.initDataUnsafe?.user || null,
+        });
+        if (resp?.card) {
+          setCardNumber(resp.card);
+          localStorage.setItem(LS_KEYS.card, resp.card);
+        }
+        if (typeof resp?.stars === "number") setStars(resp.stars);
+      } catch (e) {
+        console.warn("register fallback (no backend)", e);
+        if (!cardNumber) {
+          const local = "1234";
+          setCardNumber(local);
+          localStorage.setItem(LS_KEYS.card, local);
+        }
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Derived
   const categories = useMemo(
@@ -280,7 +332,11 @@ export default function App() {
             <button
               key={c}
               onClick={() => setActiveCategory(c)}
-              className={`px-3 py-2 rounded-full border text-sm whitespace-nowrap ${c === activeCategory ? "bg-teal-500 text-white border-teal-500" : "border-gray-200"}`}
+              className={`px-3 py-2 rounded-full border text-sm whitespace-nowrap ${
+                c === activeCategory
+                  ? "bg-teal-500 text-white border-teal-500"
+                  : "border-gray-200"
+              }`}
             >
               {c}
             </button>
@@ -344,11 +400,60 @@ export default function App() {
           add={add}
           remove={remove}
           onClose={() => setShowCart(false)}
-          onPaid={() => {
+          onPaid={async (when, table, payment) => {
+            // если указан BACKEND_URL — отдадим заказ на сервер
+            if (BACKEND_URL) {
+              try {
+                const orderLines = Object.entries(cart)
+                  .filter(([_, qty]) => (qty || 0) > 0)
+                  .map(([id, qty]) => {
+                    const item = menu.find((i) => i.id === id)!;
+                    return {
+                      id,
+                      title: titleByLang(item, lang),
+                      qty,
+                      unit_price: toNumber(item.price, 0),
+                    };
+                  });
+
+                const resp = await postJSON(BACKEND_URL, {
+                  action: "order",
+                  initData: (tg as any)?.initData || null,
+                  user: (tg as any)?.initDataUnsafe?.user || null,
+                  card: cardNumber || null,
+                  total,
+                  when,
+                  table: when === "now" ? table : null,
+                  payment,
+                  items: orderLines,
+                });
+
+                if (typeof resp?.stars === "number") setStars(resp.stars);
+                setCart({});
+                alert(
+                  lang === "ru"
+                    ? "Спасибо! Заказ принят."
+                    : lang === "sr"
+                      ? "Hvala! Porudžbina je primljena."
+                      : "Thanks! Order received.",
+                );
+                return;
+              } catch (e) {
+                console.error("order error", e);
+                // graceful fallback ниже
+              }
+            }
+            // Локальный демо-режим (без бэкенда): просто начислим звёзды локально
             const earned = Math.floor(total / 350);
             setStars((s) => s + earned);
             setCart({});
-            alert("Thanks! Order received.");
+            alert(
+              lang === "ru"
+                ? "Спасибо! Заказ принят."
+                : lang === "sr"
+                  ? "Hvala! Porudžbina je primljena."
+                  : "Thanks! Order received.",
+            );
           }}
         />
       )}
@@ -377,7 +482,7 @@ function Header({
         <div className="font-semibold text-lg flex items-center gap-2">
           {BRAND.name}
           <span className="text-xs px-2 py-0.5 rounded-full border border-gray-200 text-gray-600">
-            #{cardNumber}
+            #{cardNumber || "—"}
           </span>
         </div>
         <div className="ml-auto flex items-center gap-2">
@@ -387,6 +492,7 @@ function Header({
           <button
             onClick={onOpenCart}
             className="relative w-9 h-9 rounded-full border flex items-center justify-center"
+            aria-label="Open cart"
           >
             🛒
             {cartCount > 0 && (
@@ -478,6 +584,7 @@ function AdsCarousel({ ads }: { ads: AdItem[] }) {
               key={s.id}
               href={s.link || "#"}
               className="w-full shrink-0 h-full"
+              aria-label={s.title}
             >
               {s.image ? (
                 <img
@@ -499,7 +606,9 @@ function AdsCarousel({ ads }: { ads: AdItem[] }) {
           <button
             key={i}
             onClick={() => setIdx(i)}
-            className={`w-2 h-2 rounded-full ${i === idx ? "bg-black" : "bg-gray-300"}`}
+            className={`w-2 h-2 rounded-full ${
+              i === idx ? "bg-black" : "bg-gray-300"
+            }`}
             aria-label={`Go to slide ${i + 1}`}
           />
         ))}
@@ -526,7 +635,11 @@ function CartSheet({
   add: (id: string, n?: number) => void;
   remove: (id: string) => void;
   onClose: () => void;
-  onPaid: () => void;
+  onPaid: (
+    when: "now" | "10" | "20",
+    table: number | null,
+    payment: "cash" | "card" | "stars",
+  ) => void | Promise<void>;
 }) {
   const [when, setWhen] = useState<"now" | "10" | "20">("now");
   const [table, setTable] = useState<number | null>(1);
@@ -540,25 +653,9 @@ function CartSheet({
   const payDisabled =
     cartLines.length === 0 || (when === "now" && table == null);
 
-  const submit = () => {
+  const submit = async () => {
     if (payDisabled) return;
-    const payload = {
-      user: tg?.initDataUnsafe?.user,
-      items: cartLines.map(({ item, qty }) => ({
-        id: item.id,
-        title: titleByLang(item, lang),
-        qty,
-        unit_price: item.price,
-        sum: item.price * qty,
-      })),
-      total,
-      when,
-      table: when === "now" ? table : null,
-      payment,
-      created_at: new Date().toISOString(),
-    };
-    console.log("[Demo] Order payload ->", payload);
-    onPaid();
+    await onPaid(when, table, payment);
     onClose();
   };
 
@@ -572,15 +669,27 @@ function CartSheet({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-4 py-3 border-b flex items-center justify-between">
-          <div className="font-semibold">Cart</div>
-          <button onClick={onClose} className="w-9 h-9 rounded-full border">
+          <div className="font-semibold">
+            {lang === "ru" ? "Корзина" : lang === "sr" ? "Korpa" : "Cart"}
+          </div>
+          <button
+            onClick={onClose}
+            className="w-9 h-9 rounded-full border"
+            aria-label="Close"
+          >
             ✕
           </button>
         </div>
 
         <div className="max-h-[60vh] overflow-y-auto px-4 py-3 divide-y">
           {cartLines.length === 0 && (
-            <div className="py-8 text-center text-gray-500">Cart is empty</div>
+            <div className="py-8 text-center text-gray-500">
+              {lang === "ru"
+                ? "Пусто"
+                : lang === "sr"
+                  ? "Prazno"
+                  : "Cart is empty"}
+            </div>
           )}
           {cartLines.map(({ item, qty }) => (
             <div key={item.id} className="py-3 flex gap-3 items-center">
@@ -600,6 +709,7 @@ function CartSheet({
                   <button
                     onClick={() => add(item.id, -1)}
                     className="w-7 h-7 rounded-full border"
+                    aria-label="Decrease"
                   >
                     −
                   </button>
@@ -607,6 +717,7 @@ function CartSheet({
                   <button
                     onClick={() => add(item.id, 1)}
                     className="w-7 h-7 rounded-full border"
+                    aria-label="Increase"
                   >
                     +
                   </button>
@@ -614,7 +725,11 @@ function CartSheet({
                     onClick={() => remove(item.id)}
                     className="ml-3 text-xs text-gray-500 underline"
                   >
-                    Remove
+                    {lang === "ru"
+                      ? "Удалить"
+                      : lang === "sr"
+                        ? "Obriši"
+                        : "Remove"}
                   </button>
                 </div>
               </div>
@@ -628,19 +743,31 @@ function CartSheet({
         {/* Checkout */}
         <div className="px-4 pb-4">
           <div className="mt-2 p-3 rounded-2xl bg-gray-50 border">
-            <div className="text-sm font-medium mb-2">When to prepare</div>
+            <div className="text-sm font-medium mb-2">
+              {lang === "ru"
+                ? "Когда приготовить"
+                : lang === "sr"
+                  ? "Kada pripremiti"
+                  : "When to prepare"}
+            </div>
             <div className="flex gap-2">
-              {(
-                [
-                  { v: "now", label: "Now" },
-                  { v: "10", label: "+10 min" },
-                  { v: "20", label: "+20 min" },
-                ] as const
-              ).map((o) => (
+              {[
+                {
+                  v: "now" as const,
+                  label:
+                    lang === "ru" ? "Сейчас" : lang === "sr" ? "Sada" : "Now",
+                },
+                { v: "10" as const, label: "+10 min" },
+                { v: "20" as const, label: "+20 min" },
+              ].map((o) => (
                 <button
                   key={o.v}
                   onClick={() => setWhen(o.v)}
-                  className={`px-3 py-2 rounded-full text-sm border ${when === o.v ? "bg-teal-500 text-white border-teal-500" : "border-gray-200"}`}
+                  className={`px-3 py-2 rounded-full text-sm border ${
+                    when === o.v
+                      ? "bg-teal-500 text-white border-teal-500"
+                      : "border-gray-200"
+                  }`}
                 >
                   {o.label}
                 </button>
@@ -649,7 +776,13 @@ function CartSheet({
 
             {when === "now" && (
               <div className="mt-3">
-                <div className="text-sm text-gray-600 mb-1">Table number</div>
+                <div className="text-sm text-gray-600 mb-1">
+                  {lang === "ru"
+                    ? "Номер стола"
+                    : lang === "sr"
+                      ? "Broj stola"
+                      : "Table number"}
+                </div>
                 <div className="grid grid-cols-6 gap-2">
                   {Array.from({ length: 12 })
                     .map((_, i) => i + 1)
@@ -657,7 +790,11 @@ function CartSheet({
                       <button
                         key={n}
                         onClick={() => setTable(n)}
-                        className={`py-2 rounded-xl border text-sm ${table === n ? "bg-teal-500 text-white border-teal-500" : "border-gray-200"}`}
+                        className={`py-2 rounded-xl border text-sm ${
+                          table === n
+                            ? "bg-teal-500 text-white border-teal-500"
+                            : "border-gray-200"
+                        }`}
                       >
                         {n}
                       </button>
@@ -668,19 +805,47 @@ function CartSheet({
           </div>
 
           <div className="mt-3 p-3 rounded-2xl bg-gray-50 border">
-            <div className="text-sm font-medium mb-2">Payment</div>
+            <div className="text-sm font-medium mb-2">
+              {lang === "ru"
+                ? "Оплата"
+                : lang === "sr"
+                  ? "Plaćanje"
+                  : "Payment"}
+            </div>
             <div className="flex gap-2">
-              {(
-                [
-                  { v: "cash", label: "Cash" },
-                  { v: "card", label: "Card" },
-                  { v: "stars", label: "Stars" },
-                ] as const
-              ).map((o) => (
+              {[
+                {
+                  v: "cash" as const,
+                  label:
+                    lang === "ru" ? "Наличные" : lang === "sr" ? "Keš" : "Cash",
+                },
+                {
+                  v: "card" as const,
+                  label:
+                    lang === "ru"
+                      ? "Карта"
+                      : lang === "sr"
+                        ? "Kartica"
+                        : "Card",
+                },
+                {
+                  v: "stars" as const,
+                  label:
+                    lang === "ru"
+                      ? "Звезды"
+                      : lang === "sr"
+                        ? "Zvezdice"
+                        : "Stars",
+                },
+              ].map((o) => (
                 <button
                   key={o.v}
                   onClick={() => setPayment(o.v)}
-                  className={`px-3 py-2 rounded-full text-sm border ${payment === o.v ? "bg-teal-500 text-white border-teal-500" : "border-gray-200"}`}
+                  className={`px-3 py-2 rounded-full text-sm border ${
+                    payment === o.v
+                      ? "bg-teal-500 text-white border-teal-500"
+                      : "border-gray-200"
+                  }`}
                 >
                   {o.label}
                 </button>
@@ -689,16 +854,20 @@ function CartSheet({
           </div>
 
           <div className="mt-4 flex items-center justify-between">
-            <div className="text-base text-gray-600">Total</div>
+            <div className="text-base text-gray-600">
+              {lang === "ru" ? "Итого" : lang === "sr" ? "Ukupno" : "Total"}
+            </div>
             <div className="text-xl font-semibold">{currency(total)}</div>
           </div>
 
           <button
             onClick={submit}
             disabled={payDisabled}
-            className={`mt-3 w-full py-3 rounded-xl font-semibold ${payDisabled ? "bg-gray-200 text-gray-500" : "bg-black text-white"}`}
+            className={`mt-3 w-full py-3 rounded-xl font-semibold ${
+              payDisabled ? "bg-gray-200 text-gray-500" : "bg-black text-white"
+            }`}
           >
-            Checkout
+            {lang === "ru" ? "Оплатить" : lang === "sr" ? "Plati" : "Checkout"}
           </button>
         </div>
       </div>
@@ -706,7 +875,7 @@ function CartSheet({
   );
 }
 
-// ====== Self-tests (optional; harmless in prod) ======
+// ====== Self-tests (harmless in prod) ======
 (function runSelfTests() {
   try {
     console.assert(
@@ -734,7 +903,10 @@ function CartSheet({
   }
 })();
 
-// ====== GLOBAL STYLES (scoped helpers) ======
+// ====== GLOBAL tiny helpers ======
 const style = document.createElement("style");
-style.innerHTML = `.no-scrollbar::-webkit-scrollbar{display:none}.no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}:root{--accent:${BRAND.accent}}`;
+style.innerHTML =
+  `.no-scrollbar::-webkit-scrollbar{display:none}` +
+  `.no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}` +
+  `:root{--accent:${BRAND.accent}}`;
 document.head.appendChild(style);

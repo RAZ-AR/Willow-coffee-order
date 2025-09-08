@@ -2,6 +2,4 @@
 @tailwind components;
 @tailwind utilities;
 
-/* utilities */
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+/* (необязательно) твои кастомные стили ниже */
