@@ -1,24 +1,25 @@
 import React, { useEffect, useMemo, useState } from "react";
 
 /**
- * Willow Telegram Mini-App — Frontend (MVP) — v5 FULL (Sheets: MENU/ADS)
+ * Willow Telegram Mini-App — Frontend (MVP) — v6
  * - Данные: Google Sheets через OpenSheet (листы: MENU, ADS)
- * - Карточки центрированы, на карточке одна кнопка “Выбрать” (EN: Select, SR: Izaberi, RU: Выбрать)
+ * - Карточки центрированы, одна кнопка “Выбрать”
  * - Корзина: +/-/Remove; при qty=0 позиция удаляется
- * - When: Now / +10 / +20; столы активны только при Now
+ * - When: Now / +10 / +20 (столы активны только при Now)
  * - Payment: Cash / Card / Stars
- * - Лояльность: регистрация/поиск карты, подсчёт звёзд (1⭐ / 350 RSD)
- * - Заказ уходит на BACKEND_URL (GAS), он шлёт TG-уведомления и обновляет звёзды
+ * - Лояльность: сервер назначает карту и возвращает звезды
+ * - Важно: карта с сервера всегда имеет приоритет над локальным кешем
+ * - Изображения Google Drive конвертируются в прямые ссылки (uc?export=view&id=…)
  */
 
 // ====== CONFIG ======
 const BRAND = { name: "Willow", accent: "#14b8a6" } as const;
 
-// Прописываем твой реальный GAS WebApp URL
+// ТВОЙ GAS WebApp (тот, что обрабатывает /register и /order)
 const BACKEND_URL =
   "https://script.google.com/macros/s/AKfycbywkMwd4Csz_pWP5Nik3UvPrfhQ_crHd9XSVJPc15DG-XZCMfzPS2JpRN5x3MalfzDF/exec";
 
-// Google Sheets (OpenSheet JSON) — ВАЖНО: ЛИСТЫ В КАПС (MENU, ADS)
+// OpenSheet JSON — листы в КАПС: MENU, ADS
 const SHEET_JSON_URLS = {
   menu: "https://opensheet.elk.sh/1DQ00jxOF5QnIxNnYhnRdOqB9DXeRLB65L3eF6pSQMHw/MENU",
   ads: "https://opensheet.elk.sh/1DQ00jxOF5QnIxNnYhnRdOqB9DXeRLB65L3eF6pSQMHw/ADS",
@@ -42,7 +43,6 @@ export interface MenuItem {
   composition_ru?: string;
   image?: string;
 }
-
 export interface AdItem {
   id: string;
   title: string;
@@ -64,28 +64,13 @@ const toNumber = (v: any, def = 0): number => {
 const currency = (v: any) => `${toNumber(v, 0).toFixed(0)} RSD`;
 
 const titleByLang = (item: Partial<MenuItem>, lang: Lang): string => {
-  const pick =
+  const t =
     lang === "en"
       ? item.title_en
       : lang === "sr"
         ? item.title_sr
         : item.title_ru;
-  return pick || item.title_en || item.title_sr || item.title_ru || "Item";
-};
-const compByLang = (item: Partial<MenuItem>, lang: Lang): string => {
-  const pick =
-    lang === "en"
-      ? item.composition_en
-      : lang === "sr"
-        ? item.composition_sr
-        : item.composition_ru;
-  return (
-    pick ||
-    item.composition_en ||
-    item.composition_sr ||
-    item.composition_ru ||
-    ""
-  );
+  return t || item.title_en || item.title_sr || item.title_ru || "Item";
 };
 const selectLabel = (lang: Lang) =>
   lang === "ru" ? "Выбрать" : lang === "sr" ? "Izaberi" : "Select";
@@ -98,21 +83,35 @@ const pickFrom = (row: Record<string, any>, keys: string[], fallback = "") => {
   return fallback;
 };
 
-// ====== МАППЕРЫ ПОД ТВОИ КОЛОНКИ ======
-// MENU → Category | English | Russian | Serbian | Volume | Price (RSD) | Ingredients | images
+// Нормализуем Google Drive → прямая ссылка
+const normalizeDrive = (url?: string) => {
+  if (!url) return "";
+  try {
+    const u = String(url).trim();
+    const m = u.match(/\/file\/d\/([a-zA-Z0-9_-]+)/); // .../file/d/<ID>/view
+    if (m) return `https://drive.google.com/uc?export=view&id=${m[1]}`;
+    const m2 = u.match(/[?&]id=([a-zA-Z0-9_-]+)/); // ...?id=<ID>
+    if (m2) return `https://drive.google.com/uc?export=view&id=${m2[1]}`;
+    return u;
+  } catch {
+    return url || "";
+  }
+};
+
+// ====== МАППЕРЫ ПОД КОЛОНКИ ЛИСТОВ ======
+// MENU: Category | English | Russian | Serbian | Volume | Price (RSD) | Ingredients | images
 const mapMenu = (rows: any[]): MenuItem[] => {
   return (rows || []).map((r: any, i: number) => {
     const id = String(pickFrom(r, ["id", "ID", "Id"], `m_${i}`));
     const category = String(pickFrom(r, ["Category"], "Other"));
-
     const title_en = String(pickFrom(r, ["English"], ""));
     const title_ru = String(pickFrom(r, ["Russian"], title_en));
     const title_sr = String(pickFrom(r, ["Serbian"], title_en));
-
     const volume = String(pickFrom(r, ["Volume"], ""));
     const price = toNumber(pickFrom(r, ["Price (RSD)", "Price", "RSD"], 0), 0);
     const comp = String(pickFrom(r, ["Ingredients"], ""));
-    const image = String(pickFrom(r, ["images", "image", "Image"], ""));
+    const rawImg = String(pickFrom(r, ["images", "image", "Image"], ""));
+    const image = normalizeDrive(rawImg);
 
     return {
       id,
@@ -130,22 +129,23 @@ const mapMenu = (rows: any[]): MenuItem[] => {
   });
 };
 
-// ADS → ADS | image_ads | description
+// ADS: ADS | image_ads | description
 const mapAds = (rows: any[]): AdItem[] => {
   return (rows || []).map((r: any, i: number) => ({
     id: String(pickFrom(r, ["id", "ID", "ADS"], `a_${i}`)),
     title: String(pickFrom(r, ["ADS", "Title"], "")),
     subtitle: String(pickFrom(r, ["description", "Subtitle"], "")),
-    image: String(pickFrom(r, ["image_ads", "image", "Image"], "")),
+    image: normalizeDrive(
+      String(pickFrom(r, ["image_ads", "image", "Image"], "")),
+    ),
     link: String(pickFrom(r, ["link", "Link"], "")),
   }));
 };
 
-// HTTP helper — без CORS preflight
+// HTTP helper (CORS-safe simple request)
 async function postJSON<T = any>(url: string, body: any): Promise<T> {
   const res = await fetch(url, {
     method: "POST",
-    // ВАЖНО: text/plain — это "simple request", без preflight OPTIONS
     headers: { "Content-Type": "text/plain;charset=UTF-8" },
     body: JSON.stringify(body),
   });
@@ -160,7 +160,7 @@ const tg = (typeof window !== "undefined" &&
   initData: null,
 };
 
-// Storage keys
+// localStorage keys
 const LS_KEYS = {
   cart: "willow_cart",
   lang: "willow_lang",
@@ -168,15 +168,12 @@ const LS_KEYS = {
   card: "willow_card",
 } as const;
 
-// Pure helper for tests & state updates
+// Чистая функция изменения корзины
 function cartAdd(prev: Record<string, number>, id: string, n = 1) {
   const next: Record<string, number> = { ...prev };
   const q = (next[id] || 0) + n;
-  if (q <= 0) {
-    delete next[id];
-  } else {
-    next[id] = q;
-  }
+  if (q <= 0) delete next[id];
+  else next[id] = q;
   return next;
 }
 
@@ -206,7 +203,7 @@ export default function App() {
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [showCart, setShowCart] = useState<boolean>(false);
 
-  // Load data (menu + ads)
+  // Загрузка меню и баннеров
   useEffect(() => {
     Promise.all([
       fetch(SHEET_JSON_URLS.menu)
@@ -221,18 +218,15 @@ export default function App() {
     });
   }, []);
 
-  // Persist
+  // Сохраняем локально
   useEffect(() => {
     localStorage.setItem(LS_KEYS.cart, JSON.stringify(cart));
   }, [cart]);
   useEffect(() => {
     localStorage.setItem(LS_KEYS.lang, lang);
   }, [lang]);
-  useEffect(() => {
-    localStorage.setItem(LS_KEYS.stars, String(stars));
-  }, [stars]);
 
-  // Registration & card lookup via backend (Telegram WebApp)
+  // Регистрация / карта / звезды — всегда берём правда с сервера
   useEffect(() => {
     (async () => {
       try {
@@ -245,33 +239,30 @@ export default function App() {
           setCardNumber(resp.card);
           localStorage.setItem(LS_KEYS.card, resp.card);
         }
-        if (typeof resp?.stars === "number") setStars(resp.stars);
-      } catch (e) {
-        console.warn("register fallback (no backend)", e);
-        if (!cardNumber) {
-          const local = "1234";
-          setCardNumber(local);
-          localStorage.setItem(LS_KEYS.card, local);
+        if (typeof resp?.stars === "number") {
+          setStars(resp.stars);
+          localStorage.setItem(LS_KEYS.stars, String(resp.stars));
         }
+      } catch (e) {
+        console.warn("register failed", e);
+        // без Telegram/бэкенда — карту НЕ создаём (не вводим рассинхрон)
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Derived
+  // Производные
   const categories = useMemo(
     () => ["All", ...Array.from(new Set(menu.map((m) => m.category)))],
     [menu],
   );
 
-  // (опционально) скрыть товары без цены — раскомментируй .filter(...)
+  // Если нужно скрывать товары без цены — раскомментируй .filter(m => toNumber(m.price)>0)
   const items = useMemo(
     () =>
       activeCategory === "All"
         ? menu
-        : menu.filter((m) => m.category === activeCategory) /*.filter(
-        (m) => toNumber(m.price, 0) > 0
-      )*/,
+        : menu.filter((m) => m.category === activeCategory),
     [activeCategory, menu],
   );
 
@@ -291,7 +282,6 @@ export default function App() {
       delete p[id];
       return p;
     });
-
   const cartCount = useMemo(
     () => Object.values(cart).reduce((a, b) => a + (b || 0), 0),
     [cart],
@@ -316,11 +306,7 @@ export default function App() {
             <button
               key={c}
               onClick={() => setActiveCategory(c)}
-              className={`px-3 py-2 rounded-full border text-sm whitespace-nowrap ${
-                c === activeCategory
-                  ? "bg-teal-500 text-white border-teal-500"
-                  : "border-gray-200"
-              }`}
+              className={`px-3 py-2 rounded-full border text-sm whitespace-nowrap ${c === activeCategory ? "bg-teal-500 text-white border-teal-500" : "border-gray-200"}`}
             >
               {c}
             </button>
@@ -360,7 +346,7 @@ export default function App() {
         </div>
       </div>
 
-      {/* Floating cart bar */}
+      {/* Bottom cart bar */}
       <div className="fixed bottom-0 inset-x-0 border-t bg-white p-3">
         <div className="max-w-md mx-auto flex items-center gap-3">
           <div className="text-sm text-gray-600 flex-1">
@@ -385,59 +371,57 @@ export default function App() {
           remove={remove}
           onClose={() => setShowCart(false)}
           onPaid={async (when, table, payment) => {
-            // если указан BACKEND_URL — отдадим заказ на сервер
-            if (BACKEND_URL) {
-              try {
-                const orderLines = Object.entries(cart)
-                  .filter(([_, qty]) => (qty || 0) > 0)
-                  .map(([id, qty]) => {
-                    const item = menu.find((i) => i.id === id)!;
-                    return {
-                      id,
-                      title: titleByLang(item, lang),
-                      qty,
-                      unit_price: toNumber(item.price, 0),
-                    };
-                  });
-
-                const resp = await postJSON(BACKEND_URL, {
-                  action: "order",
-                  initData: (tg as any)?.initData || null,
-                  user: (tg as any)?.initDataUnsafe?.user || null,
-                  card: cardNumber || null,
-                  total,
-                  when,
-                  table: when === "now" ? table : null,
-                  payment,
-                  items: orderLines,
+            try {
+              const orderLines = Object.entries(cart)
+                .filter(([_, qty]) => (qty || 0) > 0)
+                .map(([id, qty]) => {
+                  const item = menu.find((i) => i.id === id)!;
+                  return {
+                    id,
+                    title: titleByLang(item, lang),
+                    qty,
+                    unit_price: toNumber(item.price, 0),
+                  };
                 });
 
-                if (typeof resp?.stars === "number") setStars(resp.stars);
-                setCart({});
-                alert(
-                  lang === "ru"
-                    ? "Спасибо! Заказ принят."
-                    : lang === "sr"
-                      ? "Hvala! Porudžbina je primljena."
-                      : "Thanks! Order received.",
-                );
-                return;
-              } catch (e) {
-                console.error("order error", e);
-                // graceful fallback ниже
+              const resp = await postJSON(BACKEND_URL, {
+                action: "order",
+                initData: (tg as any)?.initData || null,
+                user: (tg as any)?.initDataUnsafe?.user || null,
+                card: cardNumber || null,
+                total,
+                when,
+                table: when === "now" ? table : null,
+                payment,
+                items: orderLines,
+              });
+
+              if (typeof resp?.stars === "number") {
+                setStars(resp.stars);
+                localStorage.setItem(LS_KEYS.stars, String(resp.stars));
               }
+              setCart({});
+              alert(
+                lang === "ru"
+                  ? "Спасибо! Заказ принят."
+                  : lang === "sr"
+                    ? "Hvala! Porudžbina je primljena."
+                    : "Thanks! Order received.",
+              );
+            } catch (e) {
+              console.error("order error", e);
+              // Локальный резерв: начислим звезды и очистим корзину
+              const earned = Math.floor(total / 350);
+              setStars((s) => s + earned);
+              setCart({});
+              alert(
+                lang === "ru"
+                  ? "Спасибо! Заказ принят."
+                  : lang === "sr"
+                    ? "Hvala! Porudžbina je primljena."
+                    : "Thanks! Order received.",
+              );
             }
-            // Локальный демо-режим (без бэкенда): просто начислим звёзды локально
-            const earned = Math.floor(total / 350);
-            setStars((s) => s + earned);
-            setCart({});
-            alert(
-              lang === "ru"
-                ? "Спасибо! Заказ принят."
-                : lang === "sr"
-                  ? "Hvala! Porudžbina je primljena."
-                  : "Thanks! Order received.",
-            );
           }}
         />
       )}
@@ -513,19 +497,17 @@ function LangPicker({
   );
 }
 
-// ====== ADS CAROUSEL (slider) ======
+// ====== ADS CAROUSEL ======
 function AdsCarousel({ ads }: { ads: AdItem[] }) {
   if (!ads?.length) return null;
   const [idx, setIdx] = useState(0);
   const slides = ads;
 
-  // auto-play
   useEffect(() => {
     const t = setInterval(() => setIdx((i) => (i + 1) % slides.length), 5000);
     return () => clearInterval(t);
   }, [slides.length]);
 
-  // swipe support
   useEffect(() => {
     let startX = 0;
     const el = document.getElementById("ads-slider");
@@ -590,9 +572,7 @@ function AdsCarousel({ ads }: { ads: AdItem[] }) {
           <button
             key={i}
             onClick={() => setIdx(i)}
-            className={`w-2 h-2 rounded-full ${
-              i === idx ? "bg-black" : "bg-gray-300"
-            }`}
+            className={`w-2 h-2 rounded-full ${i === idx ? "bg-black" : "bg-gray-300"}`}
             aria-label={`Go to slide ${i + 1}`}
           />
         ))}
@@ -747,11 +727,7 @@ function CartSheet({
                 <button
                   key={o.v}
                   onClick={() => setWhen(o.v)}
-                  className={`px-3 py-2 rounded-full text-sm border ${
-                    when === o.v
-                      ? "bg-teal-500 text-white border-teal-500"
-                      : "border-gray-200"
-                  }`}
+                  className={`px-3 py-2 rounded-full text-sm border ${when === o.v ? "bg-teal-500 text-white border-teal-500" : "border-gray-200"}`}
                 >
                   {o.label}
                 </button>
@@ -774,11 +750,7 @@ function CartSheet({
                       <button
                         key={n}
                         onClick={() => setTable(n)}
-                        className={`py-2 rounded-xl border text-sm ${
-                          table === n
-                            ? "bg-teal-500 text-white border-teal-500"
-                            : "border-gray-200"
-                        }`}
+                        className={`py-2 rounded-xl border text-sm ${table === n ? "bg-teal-500 text-white border-teal-500" : "border-gray-200"}`}
                       >
                         {n}
                       </button>
@@ -825,11 +797,7 @@ function CartSheet({
                 <button
                   key={o.v}
                   onClick={() => setPayment(o.v)}
-                  className={`px-3 py-2 rounded-full text-sm border ${
-                    payment === o.v
-                      ? "bg-teal-500 text-white border-teal-500"
-                      : "border-gray-200"
-                  }`}
+                  className={`px-3 py-2 rounded-full text-sm border ${payment === o.v ? "bg-teal-500 text-white border-teal-500" : "border-gray-200"}`}
                 >
                   {o.label}
                 </button>
@@ -847,9 +815,7 @@ function CartSheet({
           <button
             onClick={submit}
             disabled={payDisabled}
-            className={`mt-3 w-full py-3 rounded-xl font-semibold ${
-              payDisabled ? "bg-gray-200 text-gray-500" : "bg-black text-white"
-            }`}
+            className={`mt-3 w-full py-3 rounded-xl font-semibold ${payDisabled ? "bg-gray-200 text-gray-500" : "bg-black text-white"}`}
           >
             {lang === "ru" ? "Оплатить" : lang === "sr" ? "Plati" : "Checkout"}
           </button>
@@ -859,31 +825,33 @@ function CartSheet({
   );
 }
 
-// ====== Self-tests (harmless in prod) ======
+// ====== Self-tests (безопасны в проде) ======
 (function runSelfTests() {
   try {
     console.assert(
       currency(undefined as any) === "0 RSD",
       "currency(undefined) should be 0 RSD",
     );
-    console.assert(
-      currency("1,200 RSD") === "1200 RSD",
-      "currency should parse commas and text",
-    );
+    console.assert(currency("1,200 RSD") === "1200 RSD", "currency parse");
     const m = mapMenu([
       {
         English: "Test",
         Category: "Coffee",
         "Price (RSD)": "1,200",
         Ingredients: "Water + Coffee",
+        images: "https://drive.google.com/file/d/1Abc/view",
       },
     ]);
     console.assert(m[0].price === 1200, "menu price parse");
+    console.assert(
+      m[0].image.includes("drive.google.com/uc?"),
+      "drive normalize",
+    );
     let c: Record<string, number> = {};
     c = cartAdd(c, "x", 1);
-    console.assert(c["x"] === 1, "cart add 1");
+    console.assert(c["x"] === 1, "cart +1");
     c = cartAdd(c, "x", -1);
-    console.assert(!("x" in c), "cart remove at 0");
+    console.assert(!("x" in c), "cart remove 0");
     // eslint-disable-next-line no-console
     console.log("[SelfTests] OK");
   } catch (e) {
