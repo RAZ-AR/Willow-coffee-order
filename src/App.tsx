@@ -12,7 +12,7 @@ import React, { useEffect, useMemo, useState } from "react";
 // ====== CONFIG ======
 const BRAND = { name: "Willow", accent: "#14b8a6" } as const;
 const BACKEND_URL =
-  "https://script.google.com/macros/s/AKfycbwNoj4SNAoZqkioCnMZM7TGjNFUg7z2kwrPsa-qc0e_VlGLiInfs5YeVjOJ_RzEODin/exec";
+  "https://script.google.com/macros/s/AKfycbyAg2KnWNOUdXoZ_eAGXCCyZSBJ7yiIlYpEPoDF7Jaw9QS0gudPwPTtp5mHldQ_y49r/exec";
 
 // Google Sheets (OpenSheet JSON)
 const SHEET_JSON_URLS = {
