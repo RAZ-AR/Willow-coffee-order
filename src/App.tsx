@@ -12,7 +12,7 @@ import React, { useEffect, useMemo, useState } from "react";
 // ====== CONFIG ======
 const BRAND = { name: "Willow", accent: "#14b8a6" } as const;
 const BACKEND_URL =
-  "https://script.google.com/macros/s/AKfycbyRIbWn7YLDsvh2taKQJeiBCJmFneOnViPt6PXQr2aYTjcmcLWlPQoZyK53XmvX1wFY/exec";
+  "https://script.google.com/macros/s/AKfycbwNoj4SNAoZqkioCnMZM7TGjNFUg7z2kwrPsa-qc0e_VlGLiInfs5YeVjOJ_RzEODin/exec";
 
 // Google Sheets (OpenSheet JSON)
 const SHEET_JSON_URLS = {
@@ -172,7 +172,7 @@ if (typeof window !== "undefined") {
     hasWebApp: !!(window as any).Telegram?.WebApp,
     initDataUnsafe: (window as any).Telegram?.WebApp?.initDataUnsafe,
     initData: (window as any).Telegram?.WebApp?.initData,
-    platform: (window as any).Telegram?.WebApp?.platform
+    platform: (window as any).Telegram?.WebApp?.platform,
   });
 }
 
@@ -199,7 +199,6 @@ export default function App() {
   const currentTgId: string | null = tg?.initDataUnsafe?.user?.id
     ? String(tg.initDataUnsafe.user.id)
     : null;
-
 
   // Если владелец в LS не совпадает с текущим Telegram ID — сбросим локальные данные
   useEffect(() => {
@@ -277,7 +276,7 @@ export default function App() {
           action: "register",
           initData: (tg as any)?.initData || null,
           user: (tg as any)?.initDataUnsafe?.user || null,
-          timestamp: Date.now() // cache busting
+          timestamp: Date.now(), // cache busting
         });
         if (resp?.card) {
           setCardNumber(resp.card);
