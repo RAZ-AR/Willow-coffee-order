@@ -194,8 +194,13 @@ export default function App() {
   useEffect(() => {
     const owner = localStorage.getItem(LS_KEYS.owner);
     if (currentTgId && owner && owner !== currentTgId) {
+      // Полная очистка при смене пользователя
       localStorage.removeItem(LS_KEYS.card);
       localStorage.removeItem(LS_KEYS.stars);
+      localStorage.removeItem(LS_KEYS.cart);
+      setCardNumber("");
+      setStars(0);
+      setCart({});
       localStorage.setItem(LS_KEYS.owner, currentTgId);
     } else if (currentTgId && !owner) {
       localStorage.setItem(LS_KEYS.owner, currentTgId);
@@ -261,6 +266,7 @@ export default function App() {
           action: "register",
           initData: (tg as any)?.initData || null,
           user: (tg as any)?.initDataUnsafe?.user || null,
+          timestamp: Date.now() // cache busting
         });
         if (resp?.card) {
           setCardNumber(resp.card);
