@@ -189,29 +189,15 @@ export default function App() {
     ? String(tg.initDataUnsafe.user.id)
     : null;
 
-  // DEBUG: логируем информацию о пользователе
-  console.log("🔍 DEBUG Telegram user info:", {
-    tg: tg,
-    user: tg?.initDataUnsafe?.user,
-    currentTgId: currentTgId,
-    initData: tg?.initData,
-  });
 
   // Если владелец в LS не совпадает с текущим Telegram ID — сбросим локальные данные
   useEffect(() => {
     const owner = localStorage.getItem(LS_KEYS.owner);
-    console.log("🔍 DEBUG: Checking ownership", { currentTgId, owner });
-
     if (currentTgId && owner && owner !== currentTgId) {
-      console.log("🔍 DEBUG: Owner changed, clearing localStorage", {
-        oldOwner: owner,
-        newOwner: currentTgId,
-      });
       localStorage.removeItem(LS_KEYS.card);
       localStorage.removeItem(LS_KEYS.stars);
       localStorage.setItem(LS_KEYS.owner, currentTgId);
     } else if (currentTgId && !owner) {
-      console.log("🔍 DEBUG: Setting initial owner", currentTgId);
       localStorage.setItem(LS_KEYS.owner, currentTgId);
     }
   }, [currentTgId]);
@@ -269,26 +255,14 @@ export default function App() {
   // Register → получить актуальные card/stars
   useEffect(() => {
     (async () => {
-      if (!BACKEND_URL || !currentTgId) {
-        console.log(
-          "🔍 DEBUG: Skipping registration - no backend URL or TG ID",
-          { BACKEND_URL, currentTgId },
-        );
-        return;
-      }
+      if (!BACKEND_URL || !currentTgId) return;
       try {
-        const payload = {
+        const resp = await postJSON(BACKEND_URL, {
           action: "register",
           initData: (tg as any)?.initData || null,
           user: (tg as any)?.initDataUnsafe?.user || null,
-        };
-        console.log("🔍 DEBUG: Sending register request", payload);
-
-        const resp = await postJSON(BACKEND_URL, payload);
-        console.log("🔍 DEBUG: Register response", resp);
-
+        });
         if (resp?.card) {
-          console.log("🔍 DEBUG: Setting card number", resp.card);
           setCardNumber(resp.card);
           localStorage.setItem(LS_KEYS.card, resp.card);
         }
