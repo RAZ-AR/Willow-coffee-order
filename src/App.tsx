@@ -2,24 +2,21 @@ import React, { useEffect, useMemo, useState } from "react";
 
 /**
  * Willow Telegram Mini-App — Frontend (MVP) — v6
- * - Данные: Google Sheets через OpenSheet (листы: MENU, ADS)
- * - Карточки центрированы, одна кнопка “Выбрать”
- * - Корзина: +/-/Remove; при qty=0 позиция удаляется
- * - When: Now / +10 / +20 (столы активны только при Now)
- * - Payment: Cash / Card / Stars
- * - Лояльность: сервер назначает карту и возвращает звезды
- * - Важно: карта с сервера всегда имеет приоритет над локальным кешем
- * - Изображения Google Drive конвертируются в прямые ссылки (uc?export=view&id=…)
+ * - Sheets: MENU / ADS (OpenSheet)
+ * - Cart, checkout
+ * - Loyalty: card + stars come ONLY from GAS (no client-side awarding)
+ * - Stars refresh: button + polling + on tab focus
+ * - Google Drive images auto-fix
  */
 
 // ====== CONFIG ======
 const BRAND = { name: "Willow", accent: "#14b8a6" } as const;
 
-// ТВОЙ GAS WebApp (тот, что обрабатывает /register и /order)
+// GAS WebApp URL
 const BACKEND_URL =
   "https://script.google.com/macros/s/AKfycbywkMwd4Csz_pWP5Nik3UvPrfhQ_crHd9XSVJPc15DG-XZCMfzPS2JpRN5x3MalfzDF/exec";
 
-// OpenSheet JSON — листы в КАПС: MENU, ADS
+// OpenSheet JSON (SHEET: MENU, ADS)
 const SHEET_JSON_URLS = {
   menu: "https://opensheet.elk.sh/1DQ00jxOF5QnIxNnYhnRdOqB9DXeRLB65L3eF6pSQMHw/MENU",
   ads: "https://opensheet.elk.sh/1DQ00jxOF5QnIxNnYhnRdOqB9DXeRLB65L3eF6pSQMHw/ADS",
@@ -43,6 +40,7 @@ export interface MenuItem {
   composition_ru?: string;
   image?: string;
 }
+
 export interface AdItem {
   id: string;
   title: string;
@@ -64,13 +62,13 @@ const toNumber = (v: any, def = 0): number => {
 const currency = (v: any) => `${toNumber(v, 0).toFixed(0)} RSD`;
 
 const titleByLang = (item: Partial<MenuItem>, lang: Lang): string => {
-  const t =
+  const pick =
     lang === "en"
       ? item.title_en
       : lang === "sr"
         ? item.title_sr
         : item.title_ru;
-  return t || item.title_en || item.title_sr || item.title_ru || "Item";
+  return pick || item.title_en || item.title_sr || item.title_ru || "Item";
 };
 const selectLabel = (lang: Lang) =>
   lang === "ru" ? "Выбрать" : lang === "sr" ? "Izaberi" : "Select";
@@ -83,23 +81,31 @@ const pickFrom = (row: Record<string, any>, keys: string[], fallback = "") => {
   return fallback;
 };
 
-// Нормализуем Google Drive → прямая ссылка
-const normalizeDrive = (url?: string) => {
-  if (!url) return "";
+// Google Drive link → direct viewable URL
+function fixDriveUrl(u: string): string {
+  if (!u) return "";
   try {
-    const u = String(url).trim();
-    const m = u.match(/\/file\/d\/([a-zA-Z0-9_-]+)/); // .../file/d/<ID>/view
-    if (m) return `https://drive.google.com/uc?export=view&id=${m[1]}`;
-    const m2 = u.match(/[?&]id=([a-zA-Z0-9_-]+)/); // ...?id=<ID>
-    if (m2) return `https://drive.google.com/uc?export=view&id=${m2[1]}`;
+    // patterns:
+    // https://drive.google.com/file/d/<ID>/view?usp=...
+    // https://drive.google.com/open?id=<ID>
+    // https://lh3.googleusercontent.com/d/<ID>=...
+    if (/lh3\.googleusercontent\.com\/d\//.test(u)) return u;
+    const idMatch =
+      u.match(/\/file\/d\/([^/]+)\//) || u.match(/[?&]id=([^&]+)/);
+    const id = idMatch?.[1];
+    if (id) {
+      // more stable image host (resizable)
+      return `https://lh3.googleusercontent.com/d/${id}=w800`;
+      // or fallback: return `https://drive.google.com/uc?export=view&id=${id}`;
+    }
     return u;
   } catch {
-    return url || "";
+    return u;
   }
-};
+}
 
-// ====== МАППЕРЫ ПОД КОЛОНКИ ЛИСТОВ ======
-// MENU: Category | English | Russian | Serbian | Volume | Price (RSD) | Ingredients | images
+// ====== MAPPERS (your columns) ======
+// MENU → Category | English | Russian | Serbian | Volume | Price (RSD) | Ingredients | images
 const mapMenu = (rows: any[]): MenuItem[] => {
   return (rows || []).map((r: any, i: number) => {
     const id = String(pickFrom(r, ["id", "ID", "Id"], `m_${i}`));
@@ -110,9 +116,9 @@ const mapMenu = (rows: any[]): MenuItem[] => {
     const volume = String(pickFrom(r, ["Volume"], ""));
     const price = toNumber(pickFrom(r, ["Price (RSD)", "Price", "RSD"], 0), 0);
     const comp = String(pickFrom(r, ["Ingredients"], ""));
-    const rawImg = String(pickFrom(r, ["images", "image", "Image"], ""));
-    const image = normalizeDrive(rawImg);
-
+    const image = fixDriveUrl(
+      String(pickFrom(r, ["images", "image", "Image"], "")),
+    );
     return {
       id,
       category,
@@ -129,20 +135,20 @@ const mapMenu = (rows: any[]): MenuItem[] => {
   });
 };
 
-// ADS: ADS | image_ads | description
+// ADS → ADS | image_ads | description
 const mapAds = (rows: any[]): AdItem[] => {
   return (rows || []).map((r: any, i: number) => ({
     id: String(pickFrom(r, ["id", "ID", "ADS"], `a_${i}`)),
     title: String(pickFrom(r, ["ADS", "Title"], "")),
     subtitle: String(pickFrom(r, ["description", "Subtitle"], "")),
-    image: normalizeDrive(
+    image: fixDriveUrl(
       String(pickFrom(r, ["image_ads", "image", "Image"], "")),
     ),
     link: String(pickFrom(r, ["link", "Link"], "")),
   }));
 };
 
-// HTTP helper (CORS-safe simple request)
+// HTTP helper — simple request (no preflight)
 async function postJSON<T = any>(url: string, body: any): Promise<T> {
   const res = await fetch(url, {
     method: "POST",
@@ -153,14 +159,14 @@ async function postJSON<T = any>(url: string, body: any): Promise<T> {
   return res.json();
 }
 
-// Telegram WebApp fallback (когда не в TG)
+// Telegram WebApp fallback (when opened outside Telegram)
 const tg = (typeof window !== "undefined" &&
   (window as any).Telegram?.WebApp) || {
-  initDataUnsafe: { user: { id: "demo", first_name: "Guest" } },
+  initDataUnsafe: { user: { id: null } }, // no demo user => no accidental card creation
   initData: null,
 };
 
-// localStorage keys
+// Storage keys
 const LS_KEYS = {
   cart: "willow_cart",
   lang: "willow_lang",
@@ -168,7 +174,7 @@ const LS_KEYS = {
   card: "willow_card",
 } as const;
 
-// Чистая функция изменения корзины
+// Pure helper for tests & state updates
 function cartAdd(prev: Record<string, number>, id: string, n = 1) {
   const next: Record<string, number> = { ...prev };
   const q = (next[id] || 0) + n;
@@ -202,8 +208,9 @@ export default function App() {
   );
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [showCart, setShowCart] = useState<boolean>(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Загрузка меню и баннеров
+  // Load data (menu + ads)
   useEffect(() => {
     Promise.all([
       fetch(SHEET_JSON_URLS.menu)
@@ -218,46 +225,63 @@ export default function App() {
     });
   }, []);
 
-  // Сохраняем локально
+  // Persist
   useEffect(() => {
     localStorage.setItem(LS_KEYS.cart, JSON.stringify(cart));
   }, [cart]);
   useEffect(() => {
     localStorage.setItem(LS_KEYS.lang, lang);
   }, [lang]);
-
-  // Регистрация / карта / звезды — всегда берём правда с сервера
   useEffect(() => {
-    (async () => {
-      try {
-        const resp = await postJSON(BACKEND_URL, {
-          action: "register",
-          initData: (tg as any)?.initData || null,
-          user: (tg as any)?.initDataUnsafe?.user || null,
-        });
-        if (resp?.card) {
-          setCardNumber(resp.card);
-          localStorage.setItem(LS_KEYS.card, resp.card);
-        }
-        if (typeof resp?.stars === "number") {
-          setStars(resp.stars);
-          localStorage.setItem(LS_KEYS.stars, String(resp.stars));
-        }
-      } catch (e) {
-        console.warn("register failed", e);
-        // без Telegram/бэкенда — карту НЕ создаём (не вводим рассинхрон)
+    localStorage.setItem(LS_KEYS.stars, String(stars));
+  }, [stars]);
+
+  // Helper: pull latest card + stars from GAS
+  const refreshStars = async () => {
+    if (!BACKEND_URL) return;
+    if (!(tg as any)?.initDataUnsafe?.user?.id) return; // only when in Telegram
+    try {
+      setRefreshing(true);
+      const resp = await postJSON(BACKEND_URL, {
+        action: "register",
+        initData: (tg as any)?.initData || null,
+        user: (tg as any)?.initDataUnsafe?.user || null,
+      });
+      if (resp?.card) {
+        setCardNumber(resp.card);
+        localStorage.setItem(LS_KEYS.card, resp.card);
       }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+      if (typeof resp?.stars === "number") setStars(resp.stars);
+    } catch (e) {
+      console.warn("refreshStars failed", e);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  // First-time card/stars fetch (only inside Telegram)
+  useEffect(() => {
+    refreshStars(); /* eslint-disable-next-line */
   }, []);
 
-  // Производные
+  // Polling every 20s + on tab focus
+  useEffect(() => {
+    const id = window.setInterval(refreshStars, 20000);
+    const onVis = () => {
+      if (document.visibilityState === "visible") refreshStars();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, []);
+
+  // Derived
   const categories = useMemo(
     () => ["All", ...Array.from(new Set(menu.map((m) => m.category)))],
     [menu],
   );
-
-  // Если нужно скрывать товары без цены — раскомментируй .filter(m => toNumber(m.price)>0)
   const items = useMemo(
     () =>
       activeCategory === "All"
@@ -265,7 +289,6 @@ export default function App() {
         : menu.filter((m) => m.category === activeCategory),
     [activeCategory, menu],
   );
-
   const total = useMemo(
     () =>
       Object.entries(cart).reduce((sum, [id, qty]) => {
@@ -294,6 +317,8 @@ export default function App() {
         lang={lang}
         setLang={setLang}
         stars={stars}
+        refreshing={refreshing}
+        onRefresh={refreshStars}
         cartCount={cartCount}
         onOpenCart={() => setShowCart(true)}
       />
@@ -346,7 +371,7 @@ export default function App() {
         </div>
       </div>
 
-      {/* Bottom cart bar */}
+      {/* Floating cart bar */}
       <div className="fixed bottom-0 inset-x-0 border-t bg-white p-3">
         <div className="max-w-md mx-auto flex items-center gap-3">
           <div className="text-sm text-gray-600 flex-1">
@@ -371,6 +396,7 @@ export default function App() {
           remove={remove}
           onClose={() => setShowCart(false)}
           onPaid={async (when, table, payment) => {
+            // Отправляем заказ на сервер; звёзды НЕ начисляем на клиенте.
             try {
               const orderLines = Object.entries(cart)
                 .filter(([_, qty]) => (qty || 0) > 0)
@@ -396,10 +422,11 @@ export default function App() {
                 items: orderLines,
               });
 
-              if (typeof resp?.stars === "number") {
-                setStars(resp.stars);
-                localStorage.setItem(LS_KEYS.stars, String(resp.stars));
+              if (resp?.card) {
+                setCardNumber(resp.card);
+                localStorage.setItem(LS_KEYS.card, resp.card);
               }
+              if (typeof resp?.stars === "number") setStars(resp.stars); // текущее значение с сервера
               setCart({});
               alert(
                 lang === "ru"
@@ -408,19 +435,19 @@ export default function App() {
                     ? "Hvala! Porudžbina je primljena."
                     : "Thanks! Order received.",
               );
+              // сразу подтянуть ещё раз (на случай, если кассир быстро изменил)
+              setTimeout(refreshStars, 1500);
+              return;
             } catch (e) {
               console.error("order error", e);
-              // Локальный резерв: начислим звезды и очистим корзину
-              const earned = Math.floor(total / 350);
-              setStars((s) => s + earned);
-              setCart({});
               alert(
                 lang === "ru"
-                  ? "Спасибо! Заказ принят."
+                  ? "Ошибка отправки заказа. Повторите."
                   : lang === "sr"
-                    ? "Hvala! Porudžbina je primljena."
-                    : "Thanks! Order received.",
+                    ? "Greška pri slanju."
+                    : "Order failed. Try again.",
               );
+              // ВАЖНО: звёзды НЕ меняем локально.
             }
           }}
         />
@@ -434,6 +461,8 @@ function Header({
   lang,
   setLang,
   stars,
+  refreshing,
+  onRefresh,
   cartCount,
   onOpenCart,
 }: {
@@ -441,6 +470,8 @@ function Header({
   lang: Lang;
   setLang: (l: Lang) => void;
   stars: number;
+  refreshing: boolean;
+  onRefresh: () => void;
   cartCount: number;
   onOpenCart: () => void;
 }) {
@@ -457,6 +488,15 @@ function Header({
           <div className="px-2 py-1 rounded-full bg-teal-50 text-teal-700 text-sm">
             ⭐ {toNumber(stars, 0)}
           </div>
+          <button
+            onClick={onRefresh}
+            className="text-xs border rounded-full px-2 py-1"
+            aria-label="Refresh stars"
+            disabled={refreshing}
+            title="Refresh stars"
+          >
+            {refreshing ? "…" : "Refresh"}
+          </button>
           <button
             onClick={onOpenCart}
             className="relative w-9 h-9 rounded-full border flex items-center justify-center"
@@ -825,37 +865,39 @@ function CartSheet({
   );
 }
 
-// ====== Self-tests (безопасны в проде) ======
+// ====== Self-tests ======
 (function runSelfTests() {
   try {
     console.assert(
       currency(undefined as any) === "0 RSD",
       "currency(undefined) should be 0 RSD",
     );
-    console.assert(currency("1,200 RSD") === "1200 RSD", "currency parse");
+    console.assert(
+      currency("1,200 RSD") === "1200 RSD",
+      "currency should parse commas and text",
+    );
     const m = mapMenu([
       {
         English: "Test",
         Category: "Coffee",
         "Price (RSD)": "1,200",
         Ingredients: "Water + Coffee",
-        images: "https://drive.google.com/file/d/1Abc/view",
+        images: "https://drive.google.com/file/d/FILEID/view",
       },
     ]);
     console.assert(m[0].price === 1200, "menu price parse");
     console.assert(
-      m[0].image.includes("drive.google.com/uc?"),
-      "drive normalize",
+      m[0].image.includes("googleusercontent.com") ||
+        m[0].image.includes("uc?export=view"),
+      "drive url fix",
     );
     let c: Record<string, number> = {};
     c = cartAdd(c, "x", 1);
-    console.assert(c["x"] === 1, "cart +1");
+    console.assert(c["x"] === 1, "cart add 1");
     c = cartAdd(c, "x", -1);
-    console.assert(!("x" in c), "cart remove 0");
-    // eslint-disable-next-line no-console
+    console.assert(!("x" in c), "cart remove at 0");
     console.log("[SelfTests] OK");
   } catch (e) {
-    // eslint-disable-next-line no-console
     console.error("[SelfTests] failed", e);
   }
 })();
