@@ -1,32 +1,28 @@
 import React, { useEffect, useMemo, useState } from "react";
 
 /**
- * Willow Telegram Mini-App — Frontend (MVP) — v6
+ * Willow Telegram Mini-App — Frontend (v5.1, no auto-stars)
  * - Sheets: MENU / ADS (OpenSheet)
- * - Cart, checkout
- * - Loyalty: card + stars come ONLY from GAS (no client-side awarding)
- * - Stars refresh: button + polling + on tab focus
- * - Google Drive images auto-fix
+ * - Drive images supported (converts /file/d/<id>/view to direct CDN)
+ * - Cart: +/-/Remove, select-only card UI
+ * - Checkout → ONLY server decides stars. Client NEVER adds stars.
  */
 
-// ====== CONFIG ======
 const BRAND = { name: "Willow", accent: "#14b8a6" } as const;
 
-// GAS WebApp URL
+// GAS WebApp URL (exec)
 const BACKEND_URL =
   "https://script.google.com/macros/s/AKfycbywkMwd4Csz_pWP5Nik3UvPrfhQ_crHd9XSVJPc15DG-XZCMfzPS2JpRN5x3MalfzDF/exec";
 
-// OpenSheet JSON (SHEET: MENU, ADS)
+// Sheets (UPPERCASE sheet names)
 const SHEET_JSON_URLS = {
   menu: "https://opensheet.elk.sh/1DQ00jxOF5QnIxNnYhnRdOqB9DXeRLB65L3eF6pSQMHw/MENU",
   ads: "https://opensheet.elk.sh/1DQ00jxOF5QnIxNnYhnRdOqB9DXeRLB65L3eF6pSQMHw/ADS",
 } as const;
 
-// i18n
 const LANGS = ["en", "sr", "ru"] as const;
 export type Lang = (typeof LANGS)[number];
 
-// ====== TYPES ======
 export interface MenuItem {
   id: string;
   category: string;
@@ -40,7 +36,6 @@ export interface MenuItem {
   composition_ru?: string;
   image?: string;
 }
-
 export interface AdItem {
   id: string;
   title: string;
@@ -49,7 +44,7 @@ export interface AdItem {
   link?: string;
 }
 
-// ====== UTILS ======
+// ===== Utils =====
 const toNumber = (v: any, def = 0): number => {
   if (v == null) return def;
   const n = Number(
@@ -62,13 +57,13 @@ const toNumber = (v: any, def = 0): number => {
 const currency = (v: any) => `${toNumber(v, 0).toFixed(0)} RSD`;
 
 const titleByLang = (item: Partial<MenuItem>, lang: Lang): string => {
-  const pick =
+  const t =
     lang === "en"
       ? item.title_en
       : lang === "sr"
         ? item.title_sr
         : item.title_ru;
-  return pick || item.title_en || item.title_sr || item.title_ru || "Item";
+  return t || item.title_en || item.title_sr || item.title_ru || "Item";
 };
 const selectLabel = (lang: Lang) =>
   lang === "ru" ? "Выбрать" : lang === "sr" ? "Izaberi" : "Select";
@@ -81,33 +76,24 @@ const pickFrom = (row: Record<string, any>, keys: string[], fallback = "") => {
   return fallback;
 };
 
-// Google Drive link → direct viewable URL
-function fixDriveUrl(u: string): string {
-  if (!u) return "";
+// convert Google Drive "view" links into direct image CDN
+const normalizeDriveUrl = (url: string): string => {
+  if (!url) return "";
   try {
-    // patterns:
-    // https://drive.google.com/file/d/<ID>/view?usp=...
-    // https://drive.google.com/open?id=<ID>
-    // https://lh3.googleusercontent.com/d/<ID>=...
-    if (/lh3\.googleusercontent\.com\/d\//.test(u)) return u;
-    const idMatch =
-      u.match(/\/file\/d\/([^/]+)\//) || u.match(/[?&]id=([^&]+)/);
-    const id = idMatch?.[1];
-    if (id) {
-      // more stable image host (resizable)
-      return `https://lh3.googleusercontent.com/d/${id}=w800`;
-      // or fallback: return `https://drive.google.com/uc?export=view&id=${id}`;
+    if (url.includes("drive.google.com")) {
+      const m1 = url.match(/\/d\/([a-zA-Z0-9_-]{10,})/);
+      const m2 = url.match(/[?&]id=([a-zA-Z0-9_-]{10,})/);
+      const id = (m1 && m1[1]) || (m2 && m2[1]);
+      if (id)
+        return `https://lh3.googleusercontent.com/d/${id}=w1080-h1080-n-k-no-nd-rj`;
     }
-    return u;
-  } catch {
-    return u;
-  }
-}
+  } catch {}
+  return url;
+};
 
-// ====== MAPPERS (your columns) ======
-// MENU → Category | English | Russian | Serbian | Volume | Price (RSD) | Ingredients | images
-const mapMenu = (rows: any[]): MenuItem[] => {
-  return (rows || []).map((r: any, i: number) => {
+// map MENU: Category | English | Russian | Serbian | Volume | Price (RSD) | Ingredients | images
+const mapMenu = (rows: any[]): MenuItem[] =>
+  (rows || []).map((r: any, i: number) => {
     const id = String(pickFrom(r, ["id", "ID", "Id"], `m_${i}`));
     const category = String(pickFrom(r, ["Category"], "Other"));
     const title_en = String(pickFrom(r, ["English"], ""));
@@ -116,7 +102,7 @@ const mapMenu = (rows: any[]): MenuItem[] => {
     const volume = String(pickFrom(r, ["Volume"], ""));
     const price = toNumber(pickFrom(r, ["Price (RSD)", "Price", "RSD"], 0), 0);
     const comp = String(pickFrom(r, ["Ingredients"], ""));
-    const image = fixDriveUrl(
+    const image = normalizeDriveUrl(
       String(pickFrom(r, ["images", "image", "Image"], "")),
     );
     return {
@@ -133,22 +119,20 @@ const mapMenu = (rows: any[]): MenuItem[] => {
       image,
     } as MenuItem;
   });
-};
 
-// ADS → ADS | image_ads | description
-const mapAds = (rows: any[]): AdItem[] => {
-  return (rows || []).map((r: any, i: number) => ({
+// map ADS: ADS | image_ads | description
+const mapAds = (rows: any[]): AdItem[] =>
+  (rows || []).map((r: any, i: number) => ({
     id: String(pickFrom(r, ["id", "ID", "ADS"], `a_${i}`)),
     title: String(pickFrom(r, ["ADS", "Title"], "")),
     subtitle: String(pickFrom(r, ["description", "Subtitle"], "")),
-    image: fixDriveUrl(
+    image: normalizeDriveUrl(
       String(pickFrom(r, ["image_ads", "image", "Image"], "")),
     ),
     link: String(pickFrom(r, ["link", "Link"], "")),
   }));
-};
 
-// HTTP helper — simple request (no preflight)
+// POST helper — simple request (no preflight)
 async function postJSON<T = any>(url: string, body: any): Promise<T> {
   const res = await fetch(url, {
     method: "POST",
@@ -159,14 +143,14 @@ async function postJSON<T = any>(url: string, body: any): Promise<T> {
   return res.json();
 }
 
-// Telegram WebApp fallback (when opened outside Telegram)
+// Telegram WebApp (fallback for local browser)
 const tg = (typeof window !== "undefined" &&
   (window as any).Telegram?.WebApp) || {
-  initDataUnsafe: { user: { id: null } }, // no demo user => no accidental card creation
+  initDataUnsafe: { user: { id: "demo", first_name: "Guest" } },
   initData: null,
 };
 
-// Storage keys
+// LocalStorage keys
 const LS_KEYS = {
   cart: "willow_cart",
   lang: "willow_lang",
@@ -174,7 +158,6 @@ const LS_KEYS = {
   card: "willow_card",
 } as const;
 
-// Pure helper for tests & state updates
 function cartAdd(prev: Record<string, number>, id: string, n = 1) {
   const next: Record<string, number> = { ...prev };
   const q = (next[id] || 0) + n;
@@ -183,7 +166,7 @@ function cartAdd(prev: Record<string, number>, id: string, n = 1) {
   return next;
 }
 
-// ====== APP ======
+// ===== APP =====
 export default function App() {
   const initialLang = (() => {
     const v = localStorage.getItem(LS_KEYS.lang) as Lang | null;
@@ -208,9 +191,8 @@ export default function App() {
   );
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [showCart, setShowCart] = useState<boolean>(false);
-  const [refreshing, setRefreshing] = useState(false);
 
-  // Load data (menu + ads)
+  // Load Sheets
   useEffect(() => {
     Promise.all([
       fetch(SHEET_JSON_URLS.menu)
@@ -225,7 +207,7 @@ export default function App() {
     });
   }, []);
 
-  // Persist
+  // Persist LS
   useEffect(() => {
     localStorage.setItem(LS_KEYS.cart, JSON.stringify(cart));
   }, [cart]);
@@ -236,48 +218,27 @@ export default function App() {
     localStorage.setItem(LS_KEYS.stars, String(stars));
   }, [stars]);
 
-  // Helper: pull latest card + stars from GAS
-  const refreshStars = async () => {
-    if (!BACKEND_URL) return;
-    if (!(tg as any)?.initDataUnsafe?.user?.id) return; // only when in Telegram
-    try {
-      setRefreshing(true);
-      const resp = await postJSON(BACKEND_URL, {
-        action: "register",
-        initData: (tg as any)?.initData || null,
-        user: (tg as any)?.initDataUnsafe?.user || null,
-      });
-      if (resp?.card) {
-        setCardNumber(resp.card);
-        localStorage.setItem(LS_KEYS.card, resp.card);
+  // Register / get card & stars from server ONLY (no demo increment)
+  useEffect(() => {
+    (async () => {
+      try {
+        const resp = await postJSON(BACKEND_URL, {
+          action: "register",
+          initData: (tg as any)?.initData || null,
+          user: (tg as any)?.initDataUnsafe?.user || null,
+        });
+        if (resp?.card) {
+          setCardNumber(resp.card);
+          localStorage.setItem(LS_KEYS.card, resp.card);
+        }
+        if (typeof resp?.stars === "number") setStars(resp.stars);
+      } catch (e) {
+        console.warn("register failed; keep local values", e);
       }
-      if (typeof resp?.stars === "number") setStars(resp.stars);
-    } catch (e) {
-      console.warn("refreshStars failed", e);
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
-  // First-time card/stars fetch (only inside Telegram)
-  useEffect(() => {
-    refreshStars(); /* eslint-disable-next-line */
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Polling every 20s + on tab focus
-  useEffect(() => {
-    const id = window.setInterval(refreshStars, 20000);
-    const onVis = () => {
-      if (document.visibilityState === "visible") refreshStars();
-    };
-    document.addEventListener("visibilitychange", onVis);
-    return () => {
-      window.clearInterval(id);
-      document.removeEventListener("visibilitychange", onVis);
-    };
-  }, []);
-
-  // Derived
   const categories = useMemo(
     () => ["All", ...Array.from(new Set(menu.map((m) => m.category)))],
     [menu],
@@ -317,8 +278,6 @@ export default function App() {
         lang={lang}
         setLang={setLang}
         stars={stars}
-        refreshing={refreshing}
-        onRefresh={refreshStars}
         cartCount={cartCount}
         onOpenCart={() => setShowCart(true)}
       />
@@ -371,7 +330,7 @@ export default function App() {
         </div>
       </div>
 
-      {/* Floating cart bar */}
+      {/* Floating bar */}
       <div className="fixed bottom-0 inset-x-0 border-t bg-white p-3">
         <div className="max-w-md mx-auto flex items-center gap-3">
           <div className="text-sm text-gray-600 flex-1">
@@ -396,7 +355,7 @@ export default function App() {
           remove={remove}
           onClose={() => setShowCart(false)}
           onPaid={async (when, table, payment) => {
-            // Отправляем заказ на сервер; звёзды НЕ начисляем на клиенте.
+            // ВАЖНО: никаких локальных звёзд! Только сервер.
             try {
               const orderLines = Object.entries(cart)
                 .filter(([_, qty]) => (qty || 0) > 0)
@@ -422,11 +381,7 @@ export default function App() {
                 items: orderLines,
               });
 
-              if (resp?.card) {
-                setCardNumber(resp.card);
-                localStorage.setItem(LS_KEYS.card, resp.card);
-              }
-              if (typeof resp?.stars === "number") setStars(resp.stars); // текущее значение с сервера
+              if (typeof resp?.stars === "number") setStars(resp.stars);
               setCart({});
               alert(
                 lang === "ru"
@@ -435,19 +390,16 @@ export default function App() {
                     ? "Hvala! Porudžbina je primljena."
                     : "Thanks! Order received.",
               );
-              // сразу подтянуть ещё раз (на случай, если кассир быстро изменил)
-              setTimeout(refreshStars, 1500);
-              return;
             } catch (e) {
               console.error("order error", e);
               alert(
                 lang === "ru"
-                  ? "Ошибка отправки заказа. Повторите."
+                  ? "Ошибка: сервер недоступен. Попробуйте ещё раз."
                   : lang === "sr"
-                    ? "Greška pri slanju."
-                    : "Order failed. Try again.",
+                    ? "Greška: server nije dostupan. Pokušajte ponovo."
+                    : "Error: server is unreachable. Please try again.",
               );
-              // ВАЖНО: звёзды НЕ меняем локально.
+              // звёзды НЕ меняем, корзину НЕ очищаем — чтобы можно было повторить
             }
           }}
         />
@@ -461,8 +413,6 @@ function Header({
   lang,
   setLang,
   stars,
-  refreshing,
-  onRefresh,
   cartCount,
   onOpenCart,
 }: {
@@ -470,8 +420,6 @@ function Header({
   lang: Lang;
   setLang: (l: Lang) => void;
   stars: number;
-  refreshing: boolean;
-  onRefresh: () => void;
   cartCount: number;
   onOpenCart: () => void;
 }) {
@@ -488,15 +436,6 @@ function Header({
           <div className="px-2 py-1 rounded-full bg-teal-50 text-teal-700 text-sm">
             ⭐ {toNumber(stars, 0)}
           </div>
-          <button
-            onClick={onRefresh}
-            className="text-xs border rounded-full px-2 py-1"
-            aria-label="Refresh stars"
-            disabled={refreshing}
-            title="Refresh stars"
-          >
-            {refreshing ? "…" : "Refresh"}
-          </button>
           <button
             onClick={onOpenCart}
             className="relative w-9 h-9 rounded-full border flex items-center justify-center"
@@ -515,7 +454,6 @@ function Header({
     </div>
   );
 }
-
 function LangPicker({
   value,
   onChange,
@@ -537,7 +475,7 @@ function LangPicker({
   );
 }
 
-// ====== ADS CAROUSEL ======
+// ===== ADS slider =====
 function AdsCarousel({ ads }: { ads: AdItem[] }) {
   if (!ads?.length) return null;
   const [idx, setIdx] = useState(0);
@@ -621,7 +559,7 @@ function AdsCarousel({ ads }: { ads: AdItem[] }) {
   );
 }
 
-// ====== CART SHEET / CHECKOUT ======
+// ===== Cart / Checkout =====
 function CartSheet({
   items,
   cart,
@@ -865,47 +803,43 @@ function CartSheet({
   );
 }
 
-// ====== Self-tests ======
+// ===== Self-tests =====
 (function runSelfTests() {
   try {
     console.assert(
       currency(undefined as any) === "0 RSD",
-      "currency(undefined) should be 0 RSD",
+      "currency(undefined) → 0 RSD",
     );
-    console.assert(
-      currency("1,200 RSD") === "1200 RSD",
-      "currency should parse commas and text",
-    );
+    console.assert(currency("1,200 RSD") === "1200 RSD", "currency parses");
     const m = mapMenu([
       {
         English: "Test",
         Category: "Coffee",
         "Price (RSD)": "1,200",
         Ingredients: "Water + Coffee",
-        images: "https://drive.google.com/file/d/FILEID/view",
+        images: "https://drive.google.com/file/d/1AbCdE12345/view?usp=sharing",
       },
     ]);
     console.assert(m[0].price === 1200, "menu price parse");
     console.assert(
-      m[0].image.includes("googleusercontent.com") ||
-        m[0].image.includes("uc?export=view"),
-      "drive url fix",
+      m[0].image.startsWith("https://lh3.googleusercontent.com/") ||
+        m[0].image === "",
+      "drive url normalized",
     );
     let c: Record<string, number> = {};
     c = cartAdd(c, "x", 1);
     console.assert(c["x"] === 1, "cart add 1");
     c = cartAdd(c, "x", -1);
     console.assert(!("x" in c), "cart remove at 0");
+    // eslint-disable-next-line no-console
     console.log("[SelfTests] OK");
   } catch (e) {
+    // eslint-disable-next-line no-console
     console.error("[SelfTests] failed", e);
   }
 })();
 
-// ====== GLOBAL tiny helpers ======
+// tiny style
 const style = document.createElement("style");
-style.innerHTML =
-  `.no-scrollbar::-webkit-scrollbar{display:none}` +
-  `.no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}` +
-  `:root{--accent:${BRAND.accent}}`;
+style.innerHTML = `.no-scrollbar::-webkit-scrollbar{display:none}.no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}:root{--accent:${BRAND.accent}}`;
 document.head.appendChild(style);
