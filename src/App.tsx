@@ -165,6 +165,17 @@ const tg = (typeof window !== "undefined" &&
   initData: null,
 };
 
+// Добавляем отладочную информацию для продакшена
+if (typeof window !== "undefined") {
+  console.log("🔍 FRONTEND DEBUG: Telegram WebApp object:", {
+    hasTelegram: !!(window as any).Telegram,
+    hasWebApp: !!(window as any).Telegram?.WebApp,
+    initDataUnsafe: (window as any).Telegram?.WebApp?.initDataUnsafe,
+    initData: (window as any).Telegram?.WebApp?.initData,
+    platform: (window as any).Telegram?.WebApp?.platform
+  });
+}
+
 // Storage keys (+ владелец)
 const LS_KEYS = {
   cart: "willow_cart",
