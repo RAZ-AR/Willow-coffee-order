@@ -887,7 +887,7 @@ function CartSheet({
             </div>
           </div>
 
-          <div className="mt-4 flex items-center justify-between">
+          <div className="mt-4 flex items-center justify_between">
             <div className="text-base text-gray-600">
               {lang === "ru" ? "Итого" : lang === "sr" ? "Ukupno" : "Total"}
             </div>
