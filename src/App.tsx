@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 
 /**
- * Willow Telegram Mini-App — Frontend (v6)
- * - Карта/звёзды: строго с бэка по текущему Telegram-пользователю
+ * Willow Telegram Mini-App — Frontend (v6.1)
+ * - Карта/звёзды строго с бэка по текущему Telegram-пользователю
  * - Сброс LS при смене владельца (owner_tg_id) → устраняет «#7778 у всех»
  * - Пуллинг stars каждые 20s
  * - Google Drive images → direct links
@@ -12,7 +12,7 @@ import React, { useEffect, useMemo, useState } from "react";
 // ====== CONFIG ======
 const BRAND = { name: "Willow", accent: "#14b8a6" } as const;
 const BACKEND_URL =
-  "https://script.google.com/macros/s/AKfycbyAg2KnWNOUdXoZ_eAGXCCyZSBJ7yiIlYpEPoDF7Jaw9QS0gudPwPTtp5mHldQ_y49r/exec";
+  "https://script.google.com/macros/s/AKfycbxKaw1z1xZ53usMA3gu0TJtu56Mav71mYQ5DlqKd_ZGRSJJLaKDSvJEhworShqf146w/exec";
 
 // Google Sheets (OpenSheet JSON)
 const SHEET_JSON_URLS = {
@@ -141,39 +141,47 @@ async function postJSON<T = any>(url: string, body: any): Promise<T> {
 }
 
 // Telegram WebApp (fallback в браузере)
-const generateTestUserId = () => {
-  const stored = localStorage.getItem("test_user_id");
-  if (stored) return parseInt(stored);
+const isDev = (import.meta as any)?.env?.MODE === "development";
 
-  const newId = (Math.random() * 1000000) | 0;
-  localStorage.setItem("test_user_id", String(newId));
-  return newId;
+const generateTestUserId = () => {
+  const key = "test_user_id";
+  try {
+    const stored = localStorage.getItem(key);
+    if (stored) return parseInt(stored);
+    const newId = (Math.random() * 1_000_000) | 0;
+    localStorage.setItem(key, String(newId));
+    return newId;
+  } catch {
+    return (Math.random() * 1_000_000) | 0;
+  }
 };
 
 const tg = (typeof window !== "undefined" &&
   (window as any).Telegram?.WebApp) || {
   initDataUnsafe: {
-    user:
-      process.env.NODE_ENV === "development"
-        ? {
-            id: generateTestUserId(), // уникальный ID для каждого браузера/сессии
-            first_name: "TestUser",
-            username: "testuser",
-          }
-        : null,
+    user: isDev
+      ? {
+          id: generateTestUserId(),
+          first_name: "TestUser",
+          username: "testuser",
+        }
+      : null,
   },
   initData: null,
 };
 
-// Добавляем отладочную информацию для продакшена
+// Отладочная информация (полезно в проде)
 if (typeof window !== "undefined") {
-  console.log("🔍 FRONTEND DEBUG: Telegram WebApp object:", {
-    hasTelegram: !!(window as any).Telegram,
-    hasWebApp: !!(window as any).Telegram?.WebApp,
-    initDataUnsafe: (window as any).Telegram?.WebApp?.initDataUnsafe,
-    initData: (window as any).Telegram?.WebApp?.initData,
-    platform: (window as any).Telegram?.WebApp?.platform,
-  });
+  try {
+    console.log("🔍 FRONTEND DEBUG: Telegram WebApp object:", {
+      hasTelegram: !!(window as any).Telegram,
+      hasWebApp: !!(window as any).Telegram?.WebApp,
+      initDataUnsafe: (window as any).Telegram?.WebApp?.initDataUnsafe,
+      initData: (window as any).Telegram?.WebApp?.initData,
+      platform: (window as any).Telegram?.WebApp?.platform,
+      isDev,
+    });
+  } catch {}
 }
 
 // Storage keys (+ владелец)
@@ -200,11 +208,18 @@ export default function App() {
     ? String(tg.initDataUnsafe.user.id)
     : null;
 
-  // Если владелец в LS не совпадает с текущим Telegram ID — сбросим локальные данные
+  const [cardNumber, setCardNumber] = useState<string>(() =>
+    currentTgId ? "" : localStorage.getItem(LS_KEYS.card) || "",
+  );
+  const [stars, setStars] = useState<number>(() =>
+    currentTgId ? 0 : toNumber(localStorage.getItem(LS_KEYS.stars), 0),
+  );
+  const [isLoadingCard, setIsLoadingCard] = useState<boolean>(!!currentTgId);
+
+  // Если владелец в LS не совпадает с текущим Telegram ID — полный сброс локальных данных
   useEffect(() => {
     const owner = localStorage.getItem(LS_KEYS.owner);
     if (currentTgId && owner && owner !== currentTgId) {
-      // Полная очистка при смене пользователя
       localStorage.removeItem(LS_KEYS.card);
       localStorage.removeItem(LS_KEYS.stars);
       localStorage.removeItem(LS_KEYS.cart);
@@ -232,14 +247,6 @@ export default function App() {
       return {};
     }
   });
-
-  // ВАЖНО: если мы внутри Telegram — не берём карту из LS, ждём бэкенд
-  const [cardNumber, setCardNumber] = useState<string>(() =>
-    currentTgId ? "" : localStorage.getItem(LS_KEYS.card) || "",
-  );
-  const [stars, setStars] = useState<number>(() =>
-    currentTgId ? 0 : toNumber(localStorage.getItem(LS_KEYS.stars), 0),
-  );
 
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [showCart, setShowCart] = useState<boolean>(false);
@@ -276,7 +283,7 @@ export default function App() {
           action: "register",
           initData: (tg as any)?.initData || null,
           user: (tg as any)?.initDataUnsafe?.user || null,
-          timestamp: Date.now(), // cache busting
+          ts: Date.now(),
         });
         if (resp?.card) {
           setCardNumber(resp.card);
@@ -286,15 +293,16 @@ export default function App() {
           setStars(resp.stars);
           localStorage.setItem(LS_KEYS.stars, String(resp.stars));
         }
-        localStorage.setItem(LS_KEYS.owner, currentTgId);
       } catch (e) {
         console.warn("register error", e);
+      } finally {
+        setIsLoadingCard(false);
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTgId]);
 
-  // Пуллинг актуальных звёзд (и карты) каждые 20s
+  // Пуллинг актуальных звёзд/карты каждые 20s
   useEffect(() => {
     if (!BACKEND_URL || !currentTgId) return;
     const t = setInterval(async () => {
@@ -315,7 +323,7 @@ export default function App() {
       } catch {}
     }, 20000);
     return () => clearInterval(t);
-  }, [BACKEND_URL, currentTgId, cardNumber, stars]);
+  }, [currentTgId, cardNumber, stars]);
 
   // Derived
   const categories = useMemo(
@@ -355,6 +363,7 @@ export default function App() {
     <div className="min-h-screen bg-white text-black">
       <Header
         cardNumber={cardNumber}
+        isLoadingCard={isLoadingCard}
         lang={lang}
         setLang={setLang}
         stars={stars}
@@ -370,7 +379,11 @@ export default function App() {
             <button
               key={c}
               onClick={() => setActiveCategory(c)}
-              className={`px-3 py-2 rounded-full border text-sm whitespace-nowrap ${c === activeCategory ? "bg-teal-500 text-white border-teal-500" : "border-gray-200"}`}
+              className={`px-3 py-2 rounded-full border text-sm whitespace-nowrap ${
+                c === activeCategory
+                  ? "bg-teal-500 text-white border-teal-500"
+                  : "border-gray-200"
+              }`}
             >
               {c}
             </button>
@@ -461,7 +474,7 @@ export default function App() {
                   items: orderLines,
                 });
 
-                // Просто отобразим возвращённые актуальные звёзды (без авто-прибавления)
+                // Отобразим актуальные звёзды, что вернул бэк (без авто-прибавления)
                 if (typeof resp?.stars === "number") {
                   setStars(resp.stars);
                   localStorage.setItem(LS_KEYS.stars, String(resp.stars));
@@ -497,6 +510,7 @@ export default function App() {
 
 function Header({
   cardNumber,
+  isLoadingCard,
   lang,
   setLang,
   stars,
@@ -504,19 +518,21 @@ function Header({
   onOpenCart,
 }: {
   cardNumber: string;
+  isLoadingCard: boolean;
   lang: Lang;
   setLang: (l: Lang) => void;
   stars: number;
   cartCount: number;
   onOpenCart: () => void;
 }) {
+  const cardBadge = cardNumber ? `#${cardNumber}` : isLoadingCard ? "#…" : "—";
   return (
     <div className="sticky top-0 z-10 bg-white/90 backdrop-blur border-b">
       <div className="max-w-md mx-auto px-4 py-3 flex items-center gap-3">
         <div className="font-semibold text-lg flex items-center gap-2">
           {BRAND.name}
           <span className="text-xs px-2 py-0.5 rounded-full border border-gray-200 text-gray-600">
-            #{cardNumber || "—"}
+            {cardBadge}
           </span>
         </div>
         <div className="ml-auto flex items-center gap-2">
