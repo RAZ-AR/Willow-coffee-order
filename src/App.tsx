@@ -1,18 +1,18 @@
 import React, { useEffect, useMemo, useState } from "react";
 
 /**
- * Willow Telegram Mini-App — Frontend (v6.1)
- * - Карта/звёзды строго с бэка по текущему Telegram-пользователю
- * - Сброс LS при смене владельца (owner_tg_id) → устраняет «#7778 у всех»
- * - Пуллинг stars каждые 20s
- * - Google Drive images → direct links
- * - Заказы без авто-начисления звёзд
+ * Willow Telegram Mini-App — Frontend (v6.2)
+ * - Карту/звёзды берём ТОЛЬКО с бэка (не из LS)
+ * - «Липкая #7778» устранена: миграция очищает старые ключи
+ * - При смене владельца (owner_tg_id) сбрасываем локальные данные
+ * - Пуллинг звёзд/карты каждые 20s
+ * - Картинки Google Drive → прямые ссылки
  */
 
 // ====== CONFIG ======
 const BRAND = { name: "Willow", accent: "#14b8a6" } as const;
 const BACKEND_URL =
-  "https://script.google.com/macros/s/AKfycbxKaw1z1xZ53usMA3gu0TJtu56Mav71mYQ5DlqKd_ZGRSJJLaKDSvJEhworShqf146w/exec";
+  "https://script.google.com/macros/s/AKfycbxjnrm4T_Chy5APY4imCI92w3Cg6zhoBkyJ2BXo4704z-bSYc40MK9DUOwEEosODkAQ/exec";
 
 // Google Sheets (OpenSheet JSON)
 const SHEET_JSON_URLS = {
@@ -170,7 +170,7 @@ const tg = (typeof window !== "undefined" &&
   initData: null,
 };
 
-// Отладочная информация (полезно в проде)
+// Отладочная информация
 if (typeof window !== "undefined") {
   try {
     console.log("🔍 FRONTEND DEBUG: Telegram WebApp object:", {
@@ -193,6 +193,9 @@ const LS_KEYS = {
   owner: "willow_owner_tg_id",
 } as const;
 
+// Миграция (чтобы уничтожить «липкие» старые значения карты)
+const MIGRATION_KEY = "willow_migrated_v62";
+
 // Cart helper
 function cartAdd(prev: Record<string, number>, id: string, n = 1) {
   const next: Record<string, number> = { ...prev };
@@ -208,32 +211,42 @@ export default function App() {
     ? String(tg.initDataUnsafe.user.id)
     : null;
 
-  const [cardNumber, setCardNumber] = useState<string>(() =>
-    currentTgId ? "" : localStorage.getItem(LS_KEYS.card) || "",
-  );
-  const [stars, setStars] = useState<number>(() =>
-    currentTgId ? 0 : toNumber(localStorage.getItem(LS_KEYS.stars), 0),
-  );
-  const [isLoadingCard, setIsLoadingCard] = useState<boolean>(!!currentTgId);
+  // — ВАЖНО: до ответа бэка карта пустая, чтобы не показывать старый LS
+  const [cardNumber, setCardNumber] = useState<string>("");
+  const [stars, setStars] = useState<number>(0);
+  const [isLoadingCard, setIsLoadingCard] = useState<boolean>(true);
 
-  // Если владелец в LS не совпадает с текущим Telegram ID — полный сброс локальных данных
+  // Миграция LS и привязка владельца
   useEffect(() => {
-    const owner = localStorage.getItem(LS_KEYS.owner);
-    if (currentTgId && owner && owner !== currentTgId) {
-      localStorage.removeItem(LS_KEYS.card);
-      localStorage.removeItem(LS_KEYS.stars);
-      localStorage.removeItem(LS_KEYS.cart);
-      setCardNumber("");
-      setStars(0);
-      setCart({});
-      localStorage.setItem(LS_KEYS.owner, currentTgId);
-    } else if (currentTgId && !owner) {
-      localStorage.setItem(LS_KEYS.owner, currentTgId);
-    }
+    try {
+      if (!localStorage.getItem(MIGRATION_KEY)) {
+        const keepLang = localStorage.getItem(LS_KEYS.lang);
+        const keepCart = localStorage.getItem(LS_KEYS.cart);
+        localStorage.clear();
+        if (keepLang) localStorage.setItem(LS_KEYS.lang, keepLang);
+        if (keepCart) localStorage.setItem(LS_KEYS.cart, keepCart);
+        localStorage.setItem(MIGRATION_KEY, "1");
+      }
+      const owner = localStorage.getItem(LS_KEYS.owner);
+      if (currentTgId && owner && owner !== currentTgId) {
+        // Сменился владелец — всё чистим
+        const keepLang = localStorage.getItem(LS_KEYS.lang);
+        localStorage.clear();
+        if (keepLang) localStorage.setItem(LS_KEYS.lang, keepLang);
+        localStorage.setItem(LS_KEYS.owner, currentTgId);
+      } else if (currentTgId && !owner) {
+        localStorage.setItem(LS_KEYS.owner, currentTgId);
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTgId]);
 
   const initialLang = (() => {
-    const v = localStorage.getItem(LS_KEYS.lang) as Lang | null;
+    const v = (
+      typeof localStorage !== "undefined"
+        ? localStorage.getItem(LS_KEYS.lang)
+        : null
+    ) as Lang | null;
     return v && (LANGS as readonly string[]).includes(v) ? (v as Lang) : "en";
   })();
 
@@ -277,7 +290,10 @@ export default function App() {
   // Register → получить актуальные card/stars
   useEffect(() => {
     (async () => {
-      if (!BACKEND_URL || !currentTgId) return;
+      if (!BACKEND_URL || !currentTgId) {
+        setIsLoadingCard(false);
+        return;
+      }
       try {
         const resp = await postJSON(BACKEND_URL, {
           action: "register",
@@ -286,12 +302,17 @@ export default function App() {
           ts: Date.now(),
         });
         if (resp?.card) {
-          setCardNumber(resp.card);
-          localStorage.setItem(LS_KEYS.card, resp.card);
+          const cardStr = String(resp.card);
+          setCardNumber(cardStr);
+          try {
+            localStorage.setItem(LS_KEYS.card, cardStr);
+          } catch {}
         }
         if (typeof resp?.stars === "number") {
           setStars(resp.stars);
-          localStorage.setItem(LS_KEYS.stars, String(resp.stars));
+          try {
+            localStorage.setItem(LS_KEYS.stars, String(resp.stars));
+          } catch {}
         }
       } catch (e) {
         console.warn("register error", e);
@@ -313,12 +334,16 @@ export default function App() {
           user: (tg as any)?.initDataUnsafe?.user || null,
         });
         if (resp?.card && resp.card !== cardNumber) {
-          setCardNumber(resp.card);
-          localStorage.setItem(LS_KEYS.card, resp.card);
+          setCardNumber(String(resp.card));
+          try {
+            localStorage.setItem(LS_KEYS.card, String(resp.card));
+          } catch {}
         }
         if (typeof resp?.stars === "number" && resp.stars !== stars) {
           setStars(resp.stars);
-          localStorage.setItem(LS_KEYS.stars, String(resp.stars));
+          try {
+            localStorage.setItem(LS_KEYS.stars, String(resp.stars));
+          } catch {}
         }
       } catch {}
     }, 20000);
@@ -474,7 +499,6 @@ export default function App() {
                   items: orderLines,
                 });
 
-                // Отобразим актуальные звёзды, что вернул бэк (без авто-прибавления)
                 if (typeof resp?.stars === "number") {
                   setStars(resp.stars);
                   localStorage.setItem(LS_KEYS.stars, String(resp.stars));
@@ -492,7 +516,6 @@ export default function App() {
                 console.error("order error", e);
               }
             }
-            // оффлайн-режим (без TG) — просто очистим корзину
             setCart({});
             alert(
               lang === "ru"
@@ -887,7 +910,7 @@ function CartSheet({
             </div>
           </div>
 
-          <div className="mt-4 flex items-center justify_between">
+          <div className="mt-4 flex items-center justify-between">
             <div className="text-base text-gray-600">
               {lang === "ru" ? "Итого" : lang === "sr" ? "Ukupno" : "Total"}
             </div>
