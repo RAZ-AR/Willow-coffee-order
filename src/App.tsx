@@ -192,6 +192,21 @@ export default function App() {
   );
   const [isLoadingCard, setIsLoadingCard] = useState<boolean>(!!currentTgId);
 
+  // Одноразовый сброс локального состояния по флагу ?reset=1 (помогает после миграций)
+  useEffect(() => {
+    try {
+      const qs = new URLSearchParams(window.location.search);
+      const shouldReset = qs.has("reset") && qs.get("reset") === "1";
+      if (shouldReset) {
+        localStorage.removeItem(LS_KEYS.card);
+        localStorage.removeItem(LS_KEYS.stars);
+        localStorage.removeItem(LS_KEYS.cart);
+        setCardNumber("");
+        setStars(0);
+      }
+    } catch {}
+  }, []);
+
   // Смена владельца → сброс локалки
   useEffect(() => {
     const owner = localStorage.getItem(LS_KEYS.owner);
