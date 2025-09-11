@@ -82,6 +82,13 @@ SPREADSHEET_ID    = <id Google Sheet>
 3. Залить в GitHub (Render соберёт автоматически):
    ```bash
    git push origin main
+
+_____________
+
+git status
+git add -A
+git commit -m "feat: описание изменений"
+git push origin main
    ```
 
 ---
