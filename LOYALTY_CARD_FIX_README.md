@@ -44,7 +44,7 @@
 URL бэкенда уже обновлен в `src/App.tsx` (строка 13-14):
 
 ```typescript
-const BACKEND_URL = "https://script.google.com/macros/s/AKfycbz2_DN40d_wVf8H5if-vWAKNZEyjMaxWx2eTUEVwlC4LxUv7KHZAALmY1i-bJOWxpa5/exec";
+const BACKEND_URL = "https://script.google.com/macros/s/AKfycbyKX3X1-JgvpJej5PQSy332yIPkzCg4EhjgTRo-nnuXxk8hKxcD22h61YRKpdJ-n4nI/exec";
 ```
 
 ### Шаг 3: Исправить существующие карты

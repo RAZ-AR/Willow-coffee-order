@@ -11,7 +11,7 @@ import React, { useEffect, useMemo, useState } from "react";
 
 const BRAND = { name: "Willow", accent: "#14b8a6" } as const;
 const BACKEND_URL =
-  "https://script.google.com/macros/s/AKfycbz2_DN40d_wVf8H5if-vWAKNZEyjMaxWx2eTUEVwlC4LxUv7KHZAALmY1i-bJOWxpa5/exec";
+  "https://script.google.com/macros/s/AKfycbyKX3X1-JgvpJej5PQSy332yIPkzCg4EhjgTRo-nnuXxk8hKxcD22h61YRKpdJ-n4nI/exec";
 
 const SHEET_JSON_URLS = {
   menu: "https://opensheet.elk.sh/1DQ00jxOF5QnIxNnYhnRdOqB9DXeRLB65L3eF6pSQMHw/MENU",
