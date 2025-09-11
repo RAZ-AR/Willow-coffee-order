@@ -190,7 +190,9 @@ export default function App() {
   const [stars, setStars] = useState<number>(() =>
     toNumber(localStorage.getItem(LS_KEYS.stars), 0),
   );
-  const [isLoadingCard, setIsLoadingCard] = useState<boolean>(!!currentTgId);
+  const [isLoadingCard, setIsLoadingCard] = useState<boolean>(
+    !!currentTgId || !!(tg as any)?.initData,
+  );
   const [debugVisible, setDebugVisible] = useState<boolean>(() => {
     try {
       const qs = new URLSearchParams(window.location.search);
@@ -281,7 +283,10 @@ export default function App() {
     let aborted = false;
 
     const tryOnce = async () => {
-      if (!BACKEND_URL || !currentTgId) return;
+      if (!BACKEND_URL) return;
+      // Разрешаем вызов даже при отсутствии user.id, если есть initData —
+      // бэкенд сам распарсит initData → user
+      if (!currentTgId && !(tg as any)?.initData) return;
       try {
         const resp = await postJSON(BACKEND_URL, {
           action: "register",
@@ -324,7 +329,8 @@ export default function App() {
 
   // Пуллинг card/stars каждые 15s
   useEffect(() => {
-    if (!BACKEND_URL || !currentTgId) return;
+    if (!BACKEND_URL) return;
+    if (!currentTgId && !(tg as any)?.initData) return;
     const t = setInterval(async () => {
       try {
         const resp = await postJSON(BACKEND_URL, {
