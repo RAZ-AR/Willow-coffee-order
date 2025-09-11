@@ -11,7 +11,7 @@ import React, { useEffect, useMemo, useState } from "react";
 
 const BRAND = { name: "Willow", accent: "#14b8a6" } as const;
 const BACKEND_URL =
-  "https://script.google.com/macros/s/AKfycbwqXQjTHbLNQ2UYrpVvcGghVpl5Lr-UZ39NEoRK6JiAkaEn4f2ZJq84e8Q6zRAiZawz/exec";
+  "https://script.google.com/macros/s/AKfycbz2_DN40d_wVf8H5if-vWAKNZEyjMaxWx2eTUEVwlC4LxUv7KHZAALmY1i-bJOWxpa5/exec";
 
 const SHEET_JSON_URLS = {
   menu: "https://opensheet.elk.sh/1DQ00jxOF5QnIxNnYhnRdOqB9DXeRLB65L3eF6pSQMHw/MENU",
@@ -281,12 +281,13 @@ export default function App() {
   // Агрессивный register (3 быстрых попытки), потом уже пуллинг
   useEffect(() => {
     let aborted = false;
+    let currentCard = "";
 
     const tryOnce = async () => {
-      if (!BACKEND_URL) return;
+      if (!BACKEND_URL) return null;
       // Разрешаем вызов даже при отсутствии user.id, если есть initData —
       // бэкенд сам распарсит initData → user
-      if (!currentTgId && !(tg as any)?.initData) return;
+      if (!currentTgId && !(tg as any)?.initData) return null;
       try {
         const resp = await postJSON(BACKEND_URL, {
           action: "register",
@@ -295,29 +296,40 @@ export default function App() {
           ts: Date.now(),
         });
         setLastRegisterResp(resp);
-        if (aborted) return;
+        if (aborted) return null;
         if (resp?.card) {
-          setCardNumber(String(resp.card));
-          localStorage.setItem(LS_KEYS.card, String(resp.card));
+          const cardStr = String(resp.card);
+          setCardNumber(cardStr);
+          localStorage.setItem(LS_KEYS.card, cardStr);
+          currentCard = cardStr;
         }
         if (typeof resp?.stars === "number") {
           setStars(resp.stars);
           localStorage.setItem(LS_KEYS.stars, String(resp.stars));
         }
+        return resp?.card || null;
       } catch {
         setLastRegisterResp({ error: "network_or_cors" });
+        return null;
       } finally {
         if (!aborted) setIsLoadingCard(false);
       }
     };
 
     (async () => {
-      await tryOnce();
+      const firstCard = await tryOnce();
+      if (firstCard && /^\d{4}$/.test(String(firstCard))) {
+        return; // Успешно получили карту с первого раза
+      }
+
       for (let i = 0; i < 3; i++) {
         if (aborted) break;
-        if (cardNumber && /^\d{4}$/.test(cardNumber)) break;
+        if (currentCard && /^\d{4}$/.test(currentCard)) break;
         await new Promise((r) => setTimeout(r, 1000));
-        await tryOnce();
+        const card = await tryOnce();
+        if (card && /^\d{4}$/.test(String(card))) {
+          break;
+        }
       }
     })();
 
@@ -554,25 +566,52 @@ export default function App() {
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <div><b>currentTgId:</b> {String(currentTgId || "null")}</div>
-              <div><b>BACKEND_URL:</b> {BACKEND_URL}</div>
-              <div><b>cardNumber:</b> {String(cardNumber || "")}</div>
-              <div><b>stars:</b> {String(stars)}</div>
-              <div><b>isLoadingCard:</b> {String(isLoadingCard)}</div>
+              <div>
+                <b>currentTgId:</b> {String(currentTgId || "null")}
+              </div>
+              <div>
+                <b>BACKEND_URL:</b> {BACKEND_URL}
+              </div>
+              <div>
+                <b>cardNumber:</b> {String(cardNumber || "")}
+              </div>
+              <div>
+                <b>stars:</b> {String(stars)}
+              </div>
+              <div>
+                <b>isLoadingCard:</b> {String(isLoadingCard)}
+              </div>
             </div>
             <div>
-              <div><b>LS card:</b> {String(localStorage.getItem(LS_KEYS.card) || "")}</div>
-              <div><b>LS stars:</b> {String(localStorage.getItem(LS_KEYS.stars) || "")}</div>
-              <div><b>LS owner:</b> {String(localStorage.getItem(LS_KEYS.owner) || "")}</div>
+              <div>
+                <b>LS card:</b>{" "}
+                {String(localStorage.getItem(LS_KEYS.card) || "")}
+              </div>
+              <div>
+                <b>LS stars:</b>{" "}
+                {String(localStorage.getItem(LS_KEYS.stars) || "")}
+              </div>
+              <div>
+                <b>LS owner:</b>{" "}
+                {String(localStorage.getItem(LS_KEYS.owner) || "")}
+              </div>
             </div>
           </div>
           <div className="mt-2">
-            <div><b>Last register resp:</b></div>
-            <pre className="whitespace-pre-wrap break-all max-h-28 overflow-auto bg-gray-50 p-2 rounded">{JSON.stringify(lastRegisterResp)}</pre>
+            <div>
+              <b>Last register resp:</b>
+            </div>
+            <pre className="whitespace-pre-wrap break-all max-h-28 overflow-auto bg-gray-50 p-2 rounded">
+              {JSON.stringify(lastRegisterResp)}
+            </pre>
           </div>
           <div className="mt-2">
-            <div><b>Last stars resp:</b></div>
-            <pre className="whitespace-pre-wrap break-all max-h-28 overflow-auto bg-gray-50 p-2 rounded">{JSON.stringify(lastStarsResp)}</pre>
+            <div>
+              <b>Last stars resp:</b>
+            </div>
+            <pre className="whitespace-pre-wrap break-all max-h-28 overflow-auto bg-gray-50 p-2 rounded">
+              {JSON.stringify(lastStarsResp)}
+            </pre>
           </div>
         </div>
       )}
