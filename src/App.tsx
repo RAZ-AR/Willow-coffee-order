@@ -191,6 +191,17 @@ export default function App() {
     toNumber(localStorage.getItem(LS_KEYS.stars), 0),
   );
   const [isLoadingCard, setIsLoadingCard] = useState<boolean>(!!currentTgId);
+  const [debugVisible, setDebugVisible] = useState<boolean>(() => {
+    try {
+      const qs = new URLSearchParams(window.location.search);
+      return qs.get("debug") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const [debugTapCount, setDebugTapCount] = useState<number>(0);
+  const [lastRegisterResp, setLastRegisterResp] = useState<any>(null);
+  const [lastStarsResp, setLastStarsResp] = useState<any>(null);
 
   // Одноразовый сброс локального состояния по флагу ?reset=1 (помогает после миграций)
   useEffect(() => {
@@ -278,6 +289,7 @@ export default function App() {
           user: (tg as any)?.initDataUnsafe?.user || null,
           ts: Date.now(),
         });
+        setLastRegisterResp(resp);
         if (aborted) return;
         if (resp?.card) {
           setCardNumber(String(resp.card));
@@ -288,7 +300,7 @@ export default function App() {
           localStorage.setItem(LS_KEYS.stars, String(resp.stars));
         }
       } catch {
-        /* ignore */
+        setLastRegisterResp({ error: "network_or_cors" });
       } finally {
         if (!aborted) setIsLoadingCard(false);
       }
@@ -320,6 +332,7 @@ export default function App() {
           initData: (tg as any)?.initData || null,
           user: (tg as any)?.initDataUnsafe?.user || null,
         });
+        setLastStarsResp(resp);
         if (resp?.card && resp.card !== cardNumber) {
           setCardNumber(String(resp.card));
           localStorage.setItem(LS_KEYS.card, String(resp.card));
@@ -328,7 +341,9 @@ export default function App() {
           setStars(resp.stars);
           localStorage.setItem(LS_KEYS.stars, String(resp.stars));
         }
-      } catch {}
+      } catch {
+        setLastStarsResp({ error: "network_or_cors" });
+      }
     }, 15000);
     return () => clearInterval(t);
   }, [currentTgId, cardNumber, stars]);
@@ -376,6 +391,16 @@ export default function App() {
         stars={stars}
         cartCount={cartCount}
         onOpenCart={() => setShowCart(true)}
+        onLogoTap={() => {
+          setDebugTapCount((c) => {
+            const n = c + 1;
+            if (n >= 5) {
+              setDebugVisible((v) => !v);
+              return 0;
+            }
+            return n;
+          });
+        }}
       />
 
       <div className="px-4 pb-28 max-w-md mx-auto">
@@ -509,6 +534,42 @@ export default function App() {
           }}
         />
       )}
+
+      {debugVisible && (
+        <div className="fixed bottom-3 left-3 right-3 z-50 p-3 rounded-lg border bg-white text-xs shadow">
+          <div className="flex items-center justify-between mb-2">
+            <b>DEBUG</b>
+            <button
+              className="px-2 py-1 border rounded"
+              onClick={() => setDebugVisible(false)}
+            >
+              Close
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <div><b>currentTgId:</b> {String(currentTgId || "null")}</div>
+              <div><b>BACKEND_URL:</b> {BACKEND_URL}</div>
+              <div><b>cardNumber:</b> {String(cardNumber || "")}</div>
+              <div><b>stars:</b> {String(stars)}</div>
+              <div><b>isLoadingCard:</b> {String(isLoadingCard)}</div>
+            </div>
+            <div>
+              <div><b>LS card:</b> {String(localStorage.getItem(LS_KEYS.card) || "")}</div>
+              <div><b>LS stars:</b> {String(localStorage.getItem(LS_KEYS.stars) || "")}</div>
+              <div><b>LS owner:</b> {String(localStorage.getItem(LS_KEYS.owner) || "")}</div>
+            </div>
+          </div>
+          <div className="mt-2">
+            <div><b>Last register resp:</b></div>
+            <pre className="whitespace-pre-wrap break-all max-h-28 overflow-auto bg-gray-50 p-2 rounded">{JSON.stringify(lastRegisterResp)}</pre>
+          </div>
+          <div className="mt-2">
+            <div><b>Last stars resp:</b></div>
+            <pre className="whitespace-pre-wrap break-all max-h-28 overflow-auto bg-gray-50 p-2 rounded">{JSON.stringify(lastStarsResp)}</pre>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -522,6 +583,7 @@ function Header({
   stars,
   cartCount,
   onOpenCart,
+  onLogoTap,
 }: {
   cardNumber: string;
   isLoadingCard: boolean;
@@ -530,6 +592,7 @@ function Header({
   stars: number;
   cartCount: number;
   onOpenCart: () => void;
+  onLogoTap: () => void;
 }) {
   const showCard = cardNumber && /^\d{4}$/.test(cardNumber);
   const cardBadge = showCard ? `#${cardNumber}` : isLoadingCard ? "#…" : "—";
@@ -537,7 +600,13 @@ function Header({
   return (
     <div className="sticky top-0 z-10 bg-white/90 backdrop-blur border-b">
       <div className="max-w-md mx-auto px-4 py-3 flex items-center gap-2">
-        <div className="font-semibold text-lg">{BRAND.name}</div>
+        <button
+          onClick={onLogoTap}
+          className="font-semibold text-lg active:opacity-60"
+          aria-label="Toggle debug"
+        >
+          {BRAND.name}
+        </button>
 
         {/* 💳 Card */}
         <div className="ml-1 text-xs px-2 py-1 rounded-full border border-gray-200 text-gray-700">
