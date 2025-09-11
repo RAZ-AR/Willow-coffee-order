@@ -1,17 +1,17 @@
 import React, { useEffect, useMemo, useState } from "react";
 
 /**
- * Willow Telegram Mini-App — Frontend (v6.3)
+ * Willow Telegram Mini-App — Frontend (v6.4)
  * - Мгновенное отображение card/stars из LS + подтверждение с бэка
  * - Сброс LS при смене владельца (owner_tg_id)
- * - Пуллинг каждые 15s (первые 3 повтора — агрессивные, по 1s)
+ * - Агрессивный register (3 ретрая по 1s), далее пуллинг stars каждые 15s
  * - Google Drive images → direct links
  * - Заказы без авто-начисления звёзд
  */
 
 const BRAND = { name: "Willow", accent: "#14b8a6" } as const;
 const BACKEND_URL =
-  "https://script.google.com/macros/s/AKfycbxKaw1z1xZ53usMA3gu0TJtu56Mav71mYQ5DlqKd_ZGRSJJLaKDSvJEhworShqf146w/exec";
+  "https://script.google.com/macros/s/AKfycbx1Lq9pS9j-7_7-A0GM2N5n9XsOBpmZ9Upl8NCJbkD3YKCf9WHBRSrtm_Cpz_5MXMKY/exec";
 
 const SHEET_JSON_URLS = {
   menu: "https://opensheet.elk.sh/1DQ00jxOF5QnIxNnYhnRdOqB9DXeRLB65L3eF6pSQMHw/MENU",
@@ -66,6 +66,7 @@ const titleByLang = (item: Partial<MenuItem>, lang: Lang): string => {
   return pick || item.title_en || item.title_sr || item.title_ru || "Item";
 };
 
+// Google Drive → direct image
 const driveToDirect = (url: string): string => {
   if (!url) return url;
   const m1 = url.match(/\/d\/([A-Za-z0-9_-]{10,})/);
@@ -182,7 +183,7 @@ export default function App() {
     ? String(tg.initDataUnsafe.user.id)
     : null;
 
-  // ВАЖНО: показываем из LS даже при наличии Telegram — UI сразу с номером
+  // Показываем из LS сразу — UI мгновенно с номером/звёздами
   const [cardNumber, setCardNumber] = useState<string>(
     () => localStorage.getItem(LS_KEYS.card) || "",
   );
@@ -191,7 +192,7 @@ export default function App() {
   );
   const [isLoadingCard, setIsLoadingCard] = useState<boolean>(!!currentTgId);
 
-  // Смена владельца → полный сброс, затем снова быстрый показ после register
+  // Смена владельца → сброс локалки
   useEffect(() => {
     const owner = localStorage.getItem(LS_KEYS.owner);
     if (currentTgId && owner && owner !== currentTgId) {
@@ -226,6 +227,7 @@ export default function App() {
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [showCart, setShowCart] = useState<boolean>(false);
 
+  // Загрузка меню/рекламы
   useEffect(() => {
     Promise.all([
       fetch(SHEET_JSON_URLS.menu)
@@ -240,6 +242,7 @@ export default function App() {
     });
   }, []);
 
+  // Persist cart/lang
   useEffect(() => {
     localStorage.setItem(LS_KEYS.cart, JSON.stringify(cart));
   }, [cart]);
@@ -247,9 +250,10 @@ export default function App() {
     localStorage.setItem(LS_KEYS.lang, lang);
   }, [lang]);
 
-  // Быстрый register + агрессивные ретраи (1s × 3) пока нет карты
+  // Агрессивный register (3 быстрых попытки), потом уже пуллинг
   useEffect(() => {
     let aborted = false;
+
     const tryOnce = async () => {
       if (!BACKEND_URL || !currentTgId) return;
       try {
@@ -261,15 +265,15 @@ export default function App() {
         });
         if (aborted) return;
         if (resp?.card) {
-          setCardNumber(resp.card);
-          localStorage.setItem(LS_KEYS.card, resp.card);
+          setCardNumber(String(resp.card));
+          localStorage.setItem(LS_KEYS.card, String(resp.card));
         }
         if (typeof resp?.stars === "number") {
           setStars(resp.stars);
           localStorage.setItem(LS_KEYS.stars, String(resp.stars));
         }
-      } catch (e) {
-        // ignore
+      } catch {
+        /* ignore */
       } finally {
         if (!aborted) setIsLoadingCard(false);
       }
@@ -277,7 +281,6 @@ export default function App() {
 
     (async () => {
       await tryOnce();
-      // до 3 быстрых попыток, если карты нет
       for (let i = 0; i < 3; i++) {
         if (aborted) break;
         if (cardNumber && /^\d{4}$/.test(cardNumber)) break;
@@ -303,8 +306,8 @@ export default function App() {
           user: (tg as any)?.initDataUnsafe?.user || null,
         });
         if (resp?.card && resp.card !== cardNumber) {
-          setCardNumber(resp.card);
-          localStorage.setItem(LS_KEYS.card, resp.card);
+          setCardNumber(String(resp.card));
+          localStorage.setItem(LS_KEYS.card, String(resp.card));
         }
         if (typeof resp?.stars === "number" && resp.stars !== stars) {
           setStars(resp.stars);
@@ -342,6 +345,7 @@ export default function App() {
       delete p[id];
       return p;
     });
+
   const cartCount = useMemo(
     () => Object.values(cart).reduce((a, b) => a + (b || 0), 0),
     [cart],
@@ -494,6 +498,7 @@ export default function App() {
   );
 }
 
+/* ===== Header ===== */
 function Header({
   cardNumber,
   isLoadingCard,
@@ -512,6 +517,8 @@ function Header({
   onOpenCart: () => void;
 }) {
   const showCard = cardNumber && /^\d{4}$/.test(cardNumber);
+  const cardBadge = showCard ? `#${cardNumber}` : isLoadingCard ? "#…" : "—";
+
   return (
     <div className="sticky top-0 z-10 bg-white/90 backdrop-blur border-b">
       <div className="max-w-md mx-auto px-4 py-3 flex items-center gap-2">
@@ -519,15 +526,7 @@ function Header({
 
         {/* 💳 Card */}
         <div className="ml-1 text-xs px-2 py-1 rounded-full border border-gray-200 text-gray-700">
-          {showCard ? (
-            <>
-              💳 <b>#{cardNumber}</b>
-            </>
-          ) : isLoadingCard ? (
-            "💳 #…"
-          ) : (
-            "💳 —"
-          )}
+          💳 <b>{cardBadge}</b>
         </div>
 
         {/* ⭐ Stars */}
@@ -576,6 +575,7 @@ function LangPicker({
   );
 }
 
+/* ===== Ads Carousel ===== */
 function AdsCarousel({ ads }: { ads: AdItem[] }) {
   if (!ads?.length) return null;
   const [idx, setIdx] = useState(0);
@@ -657,6 +657,7 @@ function AdsCarousel({ ads }: { ads: AdItem[] }) {
   );
 }
 
+/* ===== Cart Sheet ===== */
 function CartSheet({
   items,
   cart,
