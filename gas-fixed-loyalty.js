@@ -53,7 +53,7 @@ function ensureHeaders_() {
 }
 
 function json(o) { 
-  return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); 
+  return HtmlService.createHtmlOutput(JSON.stringify(o)); 
 }
 
 /** ===== i18n ===== */
@@ -765,7 +765,7 @@ function doGet(e) {
 }
 
 function ping() { 
-  return ContentService.createTextOutput("ok"); 
+  return HtmlService.createHtmlOutput("ok"); 
 }
 
 // Функция для исправления существующих некорректных карт

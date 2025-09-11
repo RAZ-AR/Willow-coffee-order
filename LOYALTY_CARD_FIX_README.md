@@ -44,7 +44,7 @@
 URL бэкенда уже обновлен в `src/App.tsx` (строка 13-14):
 
 ```typescript
-const BACKEND_URL = "https://script.google.com/macros/s/AKfycbyKX3X1-JgvpJej5PQSy332yIPkzCg4EhjgTRo-nnuXxk8hKxcD22h61YRKpdJ-n4nI/exec";
+const BACKEND_URL = "https://script.google.com/macros/s/AKfycbzwdLE_B0zHS3-ScLV_W6H-E0AGHT8uoEyq9hNe2QGcGtahX9r5REuBqviYEo8fZtJ2/exec";
 ```
 
 ### Шаг 3: Исправить существующие карты
@@ -59,7 +59,7 @@ const BACKEND_URL = "https://script.google.com/macros/s/AKfycbyKX3X1-JgvpJej5PQS
 ```bash
 curl -X POST "https://api.telegram.org/bot8452257685:AAHXDKbZWK53j5XzVD9MEiGTz38bVcT4e2s/setWebhook" \
 -H "Content-Type: application/json" \
--d '{"url": "https://script.google.com/macros/s/AKfycbz2_DN40d_wVf8H5if-vWAKNZEyjMaxWx2eTUEVwlC4LxUv7KHZAALmY1i-bJOWxpa5/exec"}'
+-d '{"url": "https://script.google.com/macros/s/AKfycbzwdLE_B0zHS3-ScLV_W6H-E0AGHT8uoEyq9hNe2QGcGtahX9r5REuBqviYEo8fZtJ2/exec"}'
 ```
 
 ## 🔧 Основные исправления
@@ -84,11 +84,16 @@ curl -X POST "https://api.telegram.org/bot8452257685:AAHXDKbZWK53j5XzVD9MEiGTz38
 - ✅ Подробное логирование отправки сообщений  
 - ✅ Корректное форматирование HTML
 
+### 5. Устранение 302 редиректа:
+- ✅ Заменен ContentService на HtmlService для избежания редиректов
+- ✅ Telegram webhook теперь получает прямой ответ 200 OK
+- ✅ Frontend fetch запросы работают без перенаправлений
+
 ## 🧪 Тестирование
 
 ### Тест генерации карт:
 ```
-GET https://script.google.com/macros/s/AKfycbz2_DN40d_wVf8H5if-vWAKNZEyjMaxWx2eTUEVwlC4LxUv7KHZAALmY1i-bJOWxpa5/exec?test=card
+GET https://script.google.com/macros/s/AKfycbzwdLE_B0zHS3-ScLV_W6H-E0AGHT8uoEyq9hNe2QGcGtahX9r5REuBqviYEo8fZtJ2/exec?test=card
 ```
 
 Должен вернуть:
