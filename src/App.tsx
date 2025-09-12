@@ -45,11 +45,29 @@ export interface AdItem {
 // ===== utils
 const toNumber = (v: any, def = 0): number => {
   if (v == null) return def;
-  const n = Number(
-    String(v)
-      .replace(/[^0-9.,-]/g, "")
-      .replace(",", "."),
-  );
+  // Обрабатываем и запятые и точки как разделители тысяч/десятичных
+  const str = String(v).replace(/[^0-9.,-]/g, "");
+  let n: number;
+  
+  // Если есть и запятая и точка, предполагаем европейский формат (1.200,50)
+  if (str.includes(",") && str.includes(".")) {
+    n = Number(str.replace(/\./g, "").replace(",", "."));
+  }
+  // Если только запятая, может быть как тысячи (1,200) так и десятичные (1,5)
+  else if (str.includes(",")) {
+    // Если запятая не в последних 3 позициях - это тысячи
+    const commaPos = str.lastIndexOf(",");
+    if (str.length - commaPos > 3) {
+      n = Number(str.replace(/,/g, ""));
+    } else {
+      n = Number(str.replace(",", "."));
+    }
+  }
+  // Только точка или только цифры
+  else {
+    n = Number(str);
+  }
+  
   return Number.isFinite(n) ? n : def;
 };
 const currency = (v: any) => `${toNumber(v, 0).toFixed(0)} RSD`;
@@ -1065,7 +1083,7 @@ function CartSheet({
       {
         English: "Test",
         Category: "Coffee",
-        "Price (RSD)": "1,200",
+        "Price (RSD)": "1200", // Обычный формат без запятых, как в реальных данных
         Ingredients: "Water + Coffee",
         images: "https://drive.google.com/file/d/1AbCdEfGhIj/view?usp=sharing",
       },
