@@ -53,7 +53,11 @@ function ensureHeaders_() {
 }
 
 function json(o) { 
-  return HtmlService.createHtmlOutput(JSON.stringify(o)); 
+  // Возвращаем JSON как plain text в HTML (избегаем 302 редирект)
+  const jsonStr = JSON.stringify(o);
+  return HtmlService.createHtmlOutput(
+    `<!DOCTYPE html><html><body><pre id="json">${jsonStr}</pre></body></html>`
+  ).setTitle('JSON Response');
 }
 
 /** ===== i18n ===== */

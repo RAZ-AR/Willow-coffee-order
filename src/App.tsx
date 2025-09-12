@@ -130,7 +130,20 @@ async function postJSON<T = any>(url: string, body: any): Promise<T> {
     body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
+  
+  const text = await res.text();
+  // Если GAS возвращает HTML с JSON внутри, извлекаем его
+  const jsonMatch = text.match(/<pre id="json">(.*?)<\/pre>/s);
+  if (jsonMatch) {
+    return JSON.parse(jsonMatch[1]);
+  }
+  
+  // Иначе пытаемся парсить как обычный JSON
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(`Invalid JSON response: ${text.slice(0, 200)}...`);
+  }
 }
 
 // Telegram WebApp (fallback в браузере)
