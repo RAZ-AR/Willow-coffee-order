@@ -237,6 +237,12 @@ function getOrCreateCardForUser_(tgUser, sendNotification) {
   
   if (existingCard && existingCard.cardNumber && existingCard.cardNumber.length === 4) {
     console.log("✅ Found existing card:", existingCard.cardNumber, "for user", tgUser.id);
+    
+    // Отправляем приветствие даже для существующих карт при /start
+    if (sendNotification !== false) {
+      sendWelcomeMessage_(tgUser, existingCard.cardNumber);
+    }
+    
     return existingCard.cardNumber;
   }
   
@@ -347,7 +353,6 @@ function tgSendHTML_(chatId, html) {
   }
   
   try {
-    console.log("📤 Sending message to:", chatId);
     var res = UrlFetchApp.fetch('https://api.telegram.org/bot' + token + '/sendMessage', {
       method: 'post',
       payload: {
@@ -360,7 +365,6 @@ function tgSendHTML_(chatId, html) {
     });
     
     var responseText = res.getContentText();
-    console.log("📨 Telegram API response:", responseText);
     
     var js = {};
     try { 
@@ -435,21 +439,23 @@ function getCardStars_(cardNumber) {
   try {
     ensureHeaders_();
     const starsLogSheet = getSheet_('StarsLog');
-    const data = starsLogSheet.getDataRange().getValues();
+    const lastRow = starsLogSheet.getLastRow();
+    
+    if (lastRow <= 1) return 0; // Только заголовки
+    
+    // ОПТИМИЗАЦИЯ: читаем только нужные колонки вместо всего листа
+    const data = starsLogSheet.getRange(2, 1, lastRow - 1, 2).getValues();
     
     let totalStars = 0;
     
-    // Начинаем с строки 2 (пропускаем заголовки)
-    for (let i = 1; i < data.length; i++) {
-      const logCardNumber = String(data[i][0]);
-      const delta = parseFloat(data[i][1]) || 0;
-      
-      if (logCardNumber === String(cardNumber)) {
-        totalStars += delta;
+    // Быстрый поиск по карте
+    for (let i = 0; i < data.length; i++) {
+      if (String(data[i][0]) === String(cardNumber)) {
+        totalStars += parseFloat(data[i][1]) || 0;
       }
     }
     
-    return Math.max(0, totalStars); // Не может быть отрицательных звезд
+    return Math.max(0, totalStars);
   } catch (error) {
     console.log("❌ Error getting stars:", error);
     return 0;
@@ -584,10 +590,10 @@ function apiOrder_(payload) {
       console.log(`⭐ Added ${starsEarned} stars for order ${orderId}`);
     }
     
-    // Отправляем уведомления с информацией о звездах
-    sendOrderNotifications_(user, cardNumber, total, when, table, payment, items, starsEarned);
-    
     var totalStars = getUserStars_(user.id);
+    
+    // Отправляем только критически важные уведомления быстро
+    sendOrderNotifications_(user, cardNumber, total, when, table, payment, items, starsEarned);
     
     return { 
       ok: true, 
