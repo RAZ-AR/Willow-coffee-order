@@ -50,7 +50,7 @@
 URL бэкенда уже обновлен в `src/App.tsx` (строка 13-14):
 
 ```typescript
-const BACKEND_URL = "https://script.google.com/macros/s/AKfycbz0hJxqnY8S1fjYnmEZAEm6NARLaT8htk_MbRXuMUoL2iBtQ1S0_IpHOzViGRtOxqGh/exec";
+const BACKEND_URL = "https://script.google.com/macros/s/AKfycbyksT1IG7k7F6ah7CtDDTlLqy3dRFo1dckq_Q2-P15RAKGhy3JcCQM1rlTvLL2jNqus/exec";
 ```
 
 ### Шаг 3: Исправить существующие карты
@@ -65,7 +65,7 @@ const BACKEND_URL = "https://script.google.com/macros/s/AKfycbz0hJxqnY8S1fjYnmEZ
 ```bash
 curl -X POST "https://api.telegram.org/bot[YOUR_BOT_TOKEN]/setWebhook" \
 -H "Content-Type: application/json" \
--d '{"url": "https://script.google.com/macros/s/AKfycbz0hJxqnY8S1fjYnmEZAEm6NARLaT8htk_MbRXuMUoL2iBtQ1S0_IpHOzViGRtOxqGh/exec"}'
+-d '{"url": "https://script.google.com/macros/s/AKfycbyksT1IG7k7F6ah7CtDDTlLqy3dRFo1dckq_Q2-P15RAKGhy3JcCQM1rlTvLL2jNqus/exec"}'
 ```
 
 **⚠️ ЗАМЕНИТЕ [YOUR_BOT_TOKEN] на ваш токен из @BotFather**
@@ -101,7 +101,7 @@ curl -X POST "https://api.telegram.org/bot[YOUR_BOT_TOKEN]/setWebhook" \
 
 ### Тест генерации карт:
 ```
-GET https://script.google.com/macros/s/AKfycbz0hJxqnY8S1fjYnmEZAEm6NARLaT8htk_MbRXuMUoL2iBtQ1S0_IpHOzViGRtOxqGh/exec?test=card
+GET https://script.google.com/macros/s/AKfycbyksT1IG7k7F6ah7CtDDTlLqy3dRFo1dckq_Q2-P15RAKGhy3JcCQM1rlTvLL2jNqus/exec?test=card
 ```
 
 Должен вернуть:
