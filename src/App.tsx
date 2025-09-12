@@ -154,9 +154,21 @@ async function postJSON<T = any>(url: string, body: any): Promise<T> {
   // Если GAS возвращает HTML с JSON внутри, извлекаем его из userHtml
   const userHtmlMatch = text.match(/"userHtml":"(.*?)"/s);
   if (userHtmlMatch) {
-    const userHtml = userHtmlMatch[1].replace(/\\x22/g, '"').replace(/\\x3c/g, '<').replace(/\\x3e/g, '>').replace(/\\\//g, '/');
+    let userHtml = userHtmlMatch[1];
+    // Декодируем HTML entities более тщательно
+    userHtml = userHtml
+      .replace(/\\x3c/g, '<')
+      .replace(/\\x3e/g, '>')
+      .replace(/\\x22/g, '"')
+      .replace(/\\\//g, '/')
+      .replace(/\\"/g, '"')
+      .replace(/\\\\/g, '\\');
+      
+    console.log('Decoded userHtml:', userHtml);
+    
     const jsonMatch = userHtml.match(/<pre id="json">(.*?)<\/pre>/s);
     if (jsonMatch) {
+      console.log('Extracted JSON:', jsonMatch[1]);
       return JSON.parse(jsonMatch[1]);
     }
   }
