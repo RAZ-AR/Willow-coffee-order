@@ -53,11 +53,14 @@ function ensureHeaders_() {
 }
 
 function json(o) { 
-  // Возвращаем JSON как plain text в HTML (избегаем 302 редирект)
+  // Возвращаем JSON с правильными CORS заголовками
   const jsonStr = JSON.stringify(o);
-  return HtmlService.createHtmlOutput(
-    `<!DOCTYPE html><html><body><pre id="json">${jsonStr}</pre></body></html>`
-  ).setTitle('JSON Response');
+  return ContentService
+    .createTextOutput(jsonStr)
+    .setMimeType(ContentService.MimeType.JSON)
+    .setHeader('Access-Control-Allow-Origin', '*')
+    .setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE')
+    .setHeader('Access-Control-Allow-Headers', 'Content-Type');
 }
 
 function simpleOk() {
