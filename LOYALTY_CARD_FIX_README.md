@@ -44,7 +44,7 @@
 URL бэкенда уже обновлен в `src/App.tsx` (строка 13-14):
 
 ```typescript
-const BACKEND_URL = "https://script.google.com/macros/s/AKfycbwr0bM8DoA18dVNzZQrMxivYWyXXcUyW_cm-QwWxgNgMi4y-mqgZWUM9XPujuIksRfy/exec";
+const BACKEND_URL = "https://script.google.com/macros/s/AKfycbwhP90VblyOoBpm3yCXBzA-6rP3P3C_B7CyY6fdTmvj5CHEq-wT8VZfED0dq4s41z_t/exec";
 ```
 
 ### Шаг 3: Исправить существующие карты
@@ -59,7 +59,7 @@ const BACKEND_URL = "https://script.google.com/macros/s/AKfycbwr0bM8DoA18dVNzZQr
 ```bash
 curl -X POST "https://api.telegram.org/bot8452257685:AAHXDKbZWK53j5XzVD9MEiGTz38bVcT4e2s/setWebhook" \
 -H "Content-Type: application/json" \
--d '{"url": "https://script.google.com/macros/s/AKfycbwr0bM8DoA18dVNzZQrMxivYWyXXcUyW_cm-QwWxgNgMi4y-mqgZWUM9XPujuIksRfy/exec"}'
+-d '{"url": "https://script.google.com/macros/s/AKfycbwhP90VblyOoBpm3yCXBzA-6rP3P3C_B7CyY6fdTmvj5CHEq-wT8VZfED0dq4s41z_t/exec"}'
 ```
 
 ## 🔧 Основные исправления
@@ -93,7 +93,7 @@ curl -X POST "https://api.telegram.org/bot8452257685:AAHXDKbZWK53j5XzVD9MEiGTz38
 
 ### Тест генерации карт:
 ```
-GET https://script.google.com/macros/s/AKfycbwr0bM8DoA18dVNzZQrMxivYWyXXcUyW_cm-QwWxgNgMi4y-mqgZWUM9XPujuIksRfy/exec?test=card
+GET https://script.google.com/macros/s/AKfycbwhP90VblyOoBpm3yCXBzA-6rP3P3C_B7CyY6fdTmvj5CHEq-wT8VZfED0dq4s41z_t/exec?test=card
 ```
 
 Должен вернуть:
