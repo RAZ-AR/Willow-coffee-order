@@ -330,20 +330,15 @@ function updateUserRecord_(tgUser, cardNumber) {
 }
 
 function getUserStars_(telegramId) {
-  var usersSheet = getSheet_('Users');
-  var lastRow = usersSheet.getLastRow();
-  
-  if (lastRow <= 1) return 0;
-  
-  var userData = usersSheet.getRange(2, 1, lastRow - 1, 4).getValues();
-  
-  for (var i = 0; i < userData.length; i++) {
-    if (String(userData[i][0]) === String(telegramId)) {
-      return Number(userData[i][3]) || 0;
-    }
+  // Находим карту пользователя по telegram ID
+  const card = findCardByTelegramId_(telegramId);
+  if (!card || !card.cardNumber) {
+    console.log(`❌ No card found for telegram ID: ${telegramId}`);
+    return 0;
   }
   
-  return 0;
+  // Получаем количество звезд по номеру карты из StarsLog
+  return getCardStars_(card.cardNumber);
 }
 
 /** ===== ИСПРАВЛЕННЫЕ TELEGRAM ФУНКЦИИ ===== */
@@ -387,6 +382,80 @@ function tgSendHTML_(chatId, html) {
   } catch (e) {
     console.log("❌ Error sending Telegram message:", e);
     return { ok: false, reason: String(e) };
+  }
+}
+
+/** ===== СИСТЕМА НАЧИСЛЕНИЯ ЗВЕЗД ===== */
+
+function calculateStarsForAmount_(totalAmount) {
+  // Конвертируем в число, если это строка
+  const amount = typeof totalAmount === 'string' ? parseFloat(totalAmount) : totalAmount;
+  
+  if (amount <= 0) return 0;
+  
+  // Система начисления звезд:
+  // 1-350 динар = 1 звезда
+  // 351-700 динар = 2 звезды  
+  // 701-1050 динар = 3 звезды
+  // И так далее...
+  
+  // Правильная формула: округляем вверх результат деления на 350
+  const starsEarned = Math.ceil(amount / 350);
+  return Math.max(1, starsEarned); // Минимум 1 звезда за любой заказ
+}
+
+function addStarsToCard_(cardNumber, starsToAdd, reason) {
+  console.log(`⭐ Adding ${starsToAdd} stars to card ${cardNumber}, reason: ${reason}`);
+  
+  if (!cardNumber || starsToAdd <= 0) {
+    console.log("❌ Invalid card number or stars amount");
+    return false;
+  }
+  
+  try {
+    ensureHeaders_();
+    
+    // Записываем в StarsLog
+    const starsLogSheet = getSheet_('StarsLog');
+    starsLogSheet.appendRow([
+      cardNumber,
+      starsToAdd,
+      reason,
+      new Date()
+    ]);
+    
+    console.log("✅ Stars logged successfully");
+    return true;
+  } catch (error) {
+    console.log("❌ Error adding stars:", error);
+    return false;
+  }
+}
+
+function getCardStars_(cardNumber) {
+  if (!cardNumber) return 0;
+  
+  try {
+    ensureHeaders_();
+    const starsLogSheet = getSheet_('StarsLog');
+    const data = starsLogSheet.getDataRange().getValues();
+    
+    let totalStars = 0;
+    
+    // Начинаем с строки 2 (пропускаем заголовки)
+    for (let i = 1; i < data.length; i++) {
+      const logCardNumber = String(data[i][0]);
+      const delta = parseFloat(data[i][1]) || 0;
+      
+      if (logCardNumber === String(cardNumber)) {
+        totalStars += delta;
+      }
+    }
+    
+    return Math.max(0, totalStars); // Не может быть отрицательных звезд
+  } catch (error) {
+    console.log("❌ Error getting stars:", error);
+    return 0;
   }
 }
 
@@ -511,16 +580,24 @@ function apiOrder_(payload) {
       new Date()
     ]);
     
-    // Отправляем уведомления
-    sendOrderNotifications_(user, cardNumber, total, when, table, payment, items);
+    // Рассчитываем и начисляем звезды за заказ
+    var starsEarned = calculateStarsForAmount_(total);
+    if (starsEarned > 0) {
+      addStarsToCard_(cardNumber, starsEarned, `Заказ #${orderId} на сумму ${total} RSD`);
+      console.log(`⭐ Added ${starsEarned} stars for order ${orderId}`);
+    }
     
-    var stars = getUserStars_(user.id);
+    // Отправляем уведомления с информацией о звездах
+    sendOrderNotifications_(user, cardNumber, total, when, table, payment, items, starsEarned);
+    
+    var totalStars = getUserStars_(user.id);
     
     return { 
       ok: true, 
       order_id: orderId, 
       card: cardNumber, 
-      stars: stars 
+      stars: totalStars,
+      stars_earned: starsEarned
     };
   } catch (error) {
     console.log("❌ Order error:", error);
@@ -528,7 +605,7 @@ function apiOrder_(payload) {
   }
 }
 
-function sendOrderNotifications_(user, cardNumber, total, when, table, payment, items) {
+function sendOrderNotifications_(user, cardNumber, total, when, table, payment, items, starsEarned) {
   var nick = user.username ? '@' + user.username : (user.first_name || String(user.id));
   
   var itemsHtml = (items || []).map(function(item) {
@@ -542,7 +619,9 @@ function sendOrderNotifications_(user, cardNumber, total, when, table, payment, 
     ('Now' + (table ? (' — <b>table ' + table + '</b>') : '')) : 
     ('+' + when + ' min');
   
-  // Сообщение для группы (кухня/бариста)
+  // Сообщение для группы (кухня/бариста) с информацией о звездах
+  var starsInfo = starsEarned > 0 ? '\n⭐ <b>Звезд получено:</b> ' + starsEarned : '';
+  
   var groupHtml = [
     '<b>🧾 ' + t_('newOrder', 'en') + '</b>',
     '👤 ' + nick,
@@ -552,11 +631,16 @@ function sendOrderNotifications_(user, cardNumber, total, when, table, payment, 
     '📦 <b>' + t_('items', 'en') + ':</b>',
     itemsHtml,
     '— — —',
-    '💵 <b>' + t_('sum', 'en') + ':</b> ' + total + ' RSD'
+    '💵 <b>' + t_('sum', 'en') + ':</b> ' + total + ' RSD' + starsInfo
   ].join('\n');
   
-  // Сообщение для клиента
+  // Сообщение для клиента с благодарностью и информацией о звездах
   var lang = langFromUser_(user);
+  var totalStars = getUserStars_(user.id);
+  var thanksMessage = starsEarned > 0 ? 
+    `\n\n🎉 <b>Спасибо за заказ!</b>\n⭐ Вы получили ${starsEarned} звезд${starsEarned > 1 ? 'ы' : 'у'}\n💫 Всего звезд: ${totalStars}` : 
+    '\n\n🎉 <b>Спасибо за заказ!</b>';
+    
   var clientHtml = [
     '<b>' + t_('orderReceived', lang) + '</b>',
     '👤 ' + nick,
@@ -564,7 +648,7 @@ function sendOrderNotifications_(user, cardNumber, total, when, table, payment, 
     '⏱️ ' + t_('when', lang) + ': ' + whenHtml,
     '📦 ' + t_('items', lang) + ':',
     itemsHtml,
-    '💵 ' + t_('sum', lang) + ': ' + total + ' RSD'
+    '💵 ' + t_('sum', lang) + ': ' + total + ' RSD' + thanksMessage
   ].join('\n');
   
   // Отправляем сообщения
@@ -847,6 +931,29 @@ function fixExistingCards() {
 }
 
 // Функция для получения статистики
+function testStarsCalculation() {
+  console.log("🧪 Testing stars calculation:");
+  
+  var testCases = [
+    { amount: 100, expected: 1 },
+    { amount: 350, expected: 1 },
+    { amount: 351, expected: 2 },
+    { amount: 700, expected: 2 },
+    { amount: 701, expected: 3 },
+    { amount: 1000, expected: 3 },
+    { amount: 1050, expected: 3 },
+    { amount: 1051, expected: 4 }
+  ];
+  
+  testCases.forEach(function(test) {
+    var result = calculateStarsForAmount_(test.amount);
+    var status = result === test.expected ? "✅" : "❌";
+    console.log(`${status} ${test.amount} RSD = ${result} звезд (ожидалось: ${test.expected})`);
+  });
+  
+  return { ok: true, message: "Stars calculation test completed" };
+}
+
 function getStats() {
   try {
     ensureHeaders_();
