@@ -192,13 +192,11 @@ const generateTestUserId = () => {
 const tg = (typeof window !== "undefined" &&
   (window as any).Telegram?.WebApp) || {
   initDataUnsafe: {
-    user: isDev
-      ? {
-          id: generateTestUserId(),
-          first_name: "TestUser",
-          username: "testuser",
-        }
-      : null,
+    user: {
+      id: generateTestUserId(),
+      first_name: "TestUser", 
+      username: "testuser",
+    },
   },
   initData: null,
 };
@@ -327,9 +325,8 @@ export default function App() {
 
     const tryOnce = async () => {
       if (!BACKEND_URL) return null;
-      // Разрешаем вызов даже при отсутствии user.id, если есть initData —
-      // бэкенд сам распарсит initData → user
-      if (!currentTgId && !(tg as any)?.initData) return null;
+      // Разрешаем вызов если есть currentTgId ИЛИ есть initData ИЛИ есть fallback user
+      if (!currentTgId && !(tg as any)?.initData && !tg?.initDataUnsafe?.user?.id) return null;
       try {
         const resp = await postJSON(BACKEND_URL, {
           action: "register",
