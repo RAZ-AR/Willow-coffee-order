@@ -53,14 +53,11 @@ function ensureHeaders_() {
 }
 
 function json(o) { 
-  // Возвращаем JSON с правильными CORS заголовками
+  // Возвращаем JSON как plain text (CORS автоматически поддерживается GAS)
   const jsonStr = JSON.stringify(o);
   return ContentService
     .createTextOutput(jsonStr)
-    .setMimeType(ContentService.MimeType.JSON)
-    .setHeader('Access-Control-Allow-Origin', '*')
-    .setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE')
-    .setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 function simpleOk() {
