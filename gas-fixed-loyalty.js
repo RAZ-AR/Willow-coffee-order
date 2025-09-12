@@ -60,6 +60,11 @@ function json(o) {
   ).setTitle('JSON Response');
 }
 
+function simpleOk() {
+  // Простой HTML ответ для Telegram webhook (без лишнего контента)
+  return HtmlService.createHtmlOutput("OK");
+}
+
 /** ===== i18n ===== */
 function langFromUser_(tgUser) {
   var code = (tgUser && tgUser.language_code) || '';
@@ -713,7 +718,7 @@ function doPost(e) {
     
     if (/^\/start/.test(text)) {
       handleStart_(data);
-      return json({ ok: true });
+      return simpleOk();
     }
     
     // Проверяем, что сообщение из разрешенных групп
@@ -728,12 +733,12 @@ function doPost(e) {
     
     if (!isAllowedChat) {
       console.log("ℹ️ Message from non-allowed chat, ignoring");
-      return json({ ok: true, ignored: true });
+      return simpleOk();
     }
     
     // Обрабатываем команды управления звездами
     var result = adjustStarsFromMessage_(text, chatId);
-    return json(result);
+    return simpleOk();
   }
   
   console.log("ℹ️ Unknown request type");

@@ -132,10 +132,21 @@ async function postJSON<T = any>(url: string, body: any): Promise<T> {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   
   const text = await res.text();
-  // Если GAS возвращает HTML с JSON внутри, извлекаем его
-  const jsonMatch = text.match(/<pre id="json">(.*?)<\/pre>/s);
-  if (jsonMatch) {
-    return JSON.parse(jsonMatch[1]);
+  
+  // Если GAS возвращает HTML с JSON внутри, извлекаем его из userHtml
+  const userHtmlMatch = text.match(/"userHtml":"(.*?)"/s);
+  if (userHtmlMatch) {
+    const userHtml = userHtmlMatch[1].replace(/\\x22/g, '"').replace(/\\x3c/g, '<').replace(/\\x3e/g, '>').replace(/\\\//g, '/');
+    const jsonMatch = userHtml.match(/<pre id="json">(.*?)<\/pre>/s);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[1]);
+    }
+  }
+  
+  // Альтернативный поиск напрямую в HTML
+  const directJsonMatch = text.match(/<pre id="json">(.*?)<\/pre>/s);
+  if (directJsonMatch) {
+    return JSON.parse(directJsonMatch[1]);
   }
   
   // Иначе пытаемся парсить как обычный JSON
