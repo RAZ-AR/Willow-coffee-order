@@ -400,11 +400,22 @@ function _resolveUserFromPayload_(payload) {
   
   // Если нет прямого user, пытаемся распарсить initData
   if (payload && payload.initData) {
+    console.log("🔍 Trying to parse initData:", payload.initData);
     user = parseInitUser_(payload.initData);
     if (user && user.id) {
       console.log("✅ Parsed user from initData:", user);
       return user;
     }
+  }
+  
+  // Fallback для разработки - если есть user в корне payload
+  if (payload && payload.tg_id) {
+    console.log("🔍 Using fallback tg_id:", payload.tg_id);
+    return {
+      id: payload.tg_id,
+      first_name: payload.first_name || 'TestUser',
+      username: payload.username || 'testuser'
+    };
   }
   
   console.log("❌ No valid user found in payload");
