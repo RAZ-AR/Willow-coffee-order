@@ -280,7 +280,7 @@ function getOrCreateCardForUser_(tgUser, sendNotification) {
 }
 
 function sendWelcomeMessage_(user, cardNumber) {
-  var stars = getUserStars_(user.id);
+  var stars = getCardStars_(cardNumber); // Используем новую систему StarsLog
   var lang = langFromUser_(user);
   var nick = user.username ? '@' + user.username : (user.first_name || 'friend');
   
@@ -304,13 +304,13 @@ function updateUserRecord_(tgUser, cardNumber) {
     
     for (var i = 0; i < userData.length; i++) {
       if (String(userData[i][0]) === String(tgUser.id)) {
-        // Обновляем существующую запись
+        // Обновляем существующую запись (без звезд - они теперь в StarsLog)
         var updateRow = i + 2;
         usersSheet.getRange(updateRow, 1, 1, 5).setValues([[
           tgUser.id,
           tgUser.username || '',
           cardNumber,
-          userData[i][3] || 0, // Сохраняем количество звезд
+          0, // Звезды больше не хранятся в Users (только в StarsLog)
           userData[i][4] || new Date() // Сохраняем дату создания
         ]]);
         console.log("🔄 Updated user record for:", tgUser.id);
@@ -934,6 +934,62 @@ function fixExistingCards() {
 }
 
 // Функция для получения статистики
+function migrateOldStarsToStarsLog() {
+  console.log("🔄 Migrating old stars from Users table to StarsLog...");
+  
+  try {
+    ensureHeaders_();
+    
+    var usersSheet = getSheet_('Users');
+    var starsLogSheet = getSheet_('StarsLog');
+    var cardsSheet = getSheet_('Cards');
+    
+    var usersData = usersSheet.getDataRange().getValues();
+    var cardsData = cardsSheet.getDataRange().getValues();
+    
+    var migrated = 0;
+    
+    // Пропускаем заголовки (начинаем с индекса 1)
+    for (var i = 1; i < usersData.length; i++) {
+      var telegramId = usersData[i][0];
+      var oldStars = parseFloat(usersData[i][3]) || 0;
+      
+      if (oldStars > 0) {
+        // Найти номер карты по telegram ID
+        var cardNumber = null;
+        for (var j = 1; j < cardsData.length; j++) {
+          if (String(cardsData[j][0]) === String(telegramId)) {
+            cardNumber = cardsData[j][1];
+            break;
+          }
+        }
+        
+        if (cardNumber) {
+          // Добавить старые звезды в StarsLog
+          starsLogSheet.appendRow([
+            cardNumber,
+            oldStars,
+            'Миграция из старой системы',
+            new Date()
+          ]);
+          
+          // Обнулить звезды в Users таблице
+          usersSheet.getRange(i + 1, 4, 1, 1).setValue(0);
+          
+          migrated++;
+          console.log(`✅ Migrated ${oldStars} stars for card ${cardNumber}`);
+        }
+      }
+    }
+    
+    console.log(`🎉 Migration completed! Migrated ${migrated} star records.`);
+    return { ok: true, migrated: migrated };
+  } catch (error) {
+    console.log("❌ Migration error:", error);
+    return { ok: false, error: String(error) };
+  }
+}
+
 function testStarsCalculation() {
   console.log("🧪 Testing stars calculation:");
   
