@@ -216,16 +216,8 @@ console.log('🔍 Telegram detection:', {
   isDev
 });
 
-const tg = realTg || {
-  initDataUnsafe: {
-    user: {
-      id: generateTestUserId(),
-      first_name: "TestUser", 
-      username: "testuser",
-    },
-  },
-  initData: null,
-};
+// Используем только реальный Telegram или null - НЕ создаем fallback!
+const tg = realTg || null;
 
 // Storage keys
 const LS_KEYS = {
@@ -257,7 +249,7 @@ export default function App() {
     toNumber(localStorage.getItem(LS_KEYS.stars), 0),
   );
   const [isLoadingCard, setIsLoadingCard] = useState<boolean>(
-    hasRealTgData || (isDev && !!currentTgId),
+    hasRealTgData,
   );
   const [debugVisible, setDebugVisible] = useState<boolean>(() => {
     try {
@@ -352,14 +344,14 @@ export default function App() {
     const tryOnce = async () => {
       if (!BACKEND_URL) return null;
       
-      // Если нет реальных данных Telegram и не в dev режиме - не регистрируем  
-      if (!hasRealTgData && !isDev) {
-        console.log('❌ No real Telegram data and not in dev mode - skipping registration');
+      // Только если есть реальные данные Telegram - регистрируем  
+      if (!hasRealTgData) {
+        console.log('❌ No real Telegram data - skipping registration');
         return null;
       }
       
       // Если нет currentTgId и нет данных - не регистрируем
-      if (!currentTgId && !(tg as any)?.initData && !tg?.initDataUnsafe?.user?.id) {
+      if (!currentTgId && !tg?.initData && !tg?.initDataUnsafe?.user?.id) {
         console.log('❌ No user data available - skipping registration');
         return null;
       }
@@ -369,8 +361,8 @@ export default function App() {
       try {
         const resp = await postJSON(BACKEND_URL, {
           action: "register",
-          initData: (tg as any)?.initData || null,
-          user: (tg as any)?.initDataUnsafe?.user || null,
+          initData: tg?.initData || null,
+          user: tg?.initDataUnsafe?.user || null,
           ts: Date.now(),
         });
         setLastRegisterResp(resp);
@@ -420,15 +412,15 @@ export default function App() {
   // Пуллинг card/stars каждые 15s
   useEffect(() => {
     if (!BACKEND_URL) return;
-    // Только если есть реальные данные Telegram или в dev режиме
-    if (!hasRealTgData && !isDev) return;
-    if (!currentTgId && !(tg as any)?.initData) return;
+    // Только если есть реальные данные Telegram
+    if (!hasRealTgData) return;
+    if (!currentTgId && !tg?.initData) return;
     const t = setInterval(async () => {
       try {
         const resp = await postJSON(BACKEND_URL, {
           action: "stars",
-          initData: (tg as any)?.initData || null,
-          user: (tg as any)?.initDataUnsafe?.user || null,
+          initData: tg?.initData || null,
+          user: tg?.initDataUnsafe?.user || null,
         });
         setLastStarsResp(resp);
         if (resp?.card && resp.card !== cardNumber) {
@@ -594,8 +586,8 @@ export default function App() {
 
                 const resp = await postJSON(BACKEND_URL, {
                   action: "order",
-                  initData: (tg as any)?.initData || null,
-                  user: (tg as any)?.initDataUnsafe?.user || null,
+                  initData: tg?.initData || null,
+                  user: tg?.initDataUnsafe?.user || null,
                   card: cardNumber || null,
                   total,
                   when,
