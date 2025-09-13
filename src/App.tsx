@@ -204,8 +204,18 @@ const generateTestUserId = () => {
     return (Math.random() * 1_000_000) | 0;
   }
 };
-// Проверяем есть ли реальный Telegram WebApp
+// Проверяем есть ли реальный Telegram WebApp с данными
 const realTg = typeof window !== "undefined" && (window as any).Telegram?.WebApp;
+const hasRealTgData = realTg && (realTg.initData || realTg.initDataUnsafe?.user?.id);
+
+console.log('🔍 Telegram detection:', {
+  realTg: !!realTg,
+  hasInitData: !!realTg?.initData,
+  hasUser: !!realTg?.initDataUnsafe?.user?.id,
+  hasRealTgData,
+  isDev
+});
+
 const tg = realTg || {
   initDataUnsafe: {
     user: {
@@ -247,7 +257,7 @@ export default function App() {
     toNumber(localStorage.getItem(LS_KEYS.stars), 0),
   );
   const [isLoadingCard, setIsLoadingCard] = useState<boolean>(
-    !!currentTgId || !!(tg as any)?.initData,
+    hasRealTgData || (isDev && !!currentTgId),
   );
   const [debugVisible, setDebugVisible] = useState<boolean>(() => {
     try {
@@ -342,18 +352,19 @@ export default function App() {
     const tryOnce = async () => {
       if (!BACKEND_URL) return null;
       
-      // Если есть реальный Telegram но данные пустые - не регистрируем
-      if (realTg && !realTg.initData && !realTg.initDataUnsafe?.user?.id) {
+      // Если нет реальных данных Telegram и не в dev режиме - не регистрируем  
+      if (!hasRealTgData && !isDev) {
+        console.log('❌ No real Telegram data and not in dev mode - skipping registration');
         return null;
       }
       
-      // Если нет реального Telegram - используем fallback только в dev режиме
-      if (!realTg && !isDev) {
+      // Если нет currentTgId и нет данных - не регистрируем
+      if (!currentTgId && !(tg as any)?.initData && !tg?.initDataUnsafe?.user?.id) {
+        console.log('❌ No user data available - skipping registration');
         return null;
       }
       
-      // Разрешаем вызов если есть currentTgId ИЛИ есть initData ИЛИ есть fallback user
-      if (!currentTgId && !(tg as any)?.initData && !tg?.initDataUnsafe?.user?.id) return null;
+      console.log('✅ Proceeding with registration for user:', currentTgId);
       
       try {
         const resp = await postJSON(BACKEND_URL, {
@@ -409,6 +420,8 @@ export default function App() {
   // Пуллинг card/stars каждые 15s
   useEffect(() => {
     if (!BACKEND_URL) return;
+    // Только если есть реальные данные Telegram или в dev режиме
+    if (!hasRealTgData && !isDev) return;
     if (!currentTgId && !(tg as any)?.initData) return;
     const t = setInterval(async () => {
       try {
