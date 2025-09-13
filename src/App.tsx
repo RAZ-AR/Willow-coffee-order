@@ -212,7 +212,14 @@ const urlParams = new URLSearchParams(window.location.search);
 const tgWebAppData = urlParams.get('tgWebAppData');
 const hasUrlParams = !!tgWebAppData;
 
-const hasRealTgData = !!realTg && (!!realTg.initData || !!realTg.initDataUnsafe?.user?.id || hasUrlParams);
+// Проверяем debug режим
+const debugMode = urlParams.get('debug') === '1';
+const forceMode = urlParams.get('force') === '1';
+
+// В Telegram WebApp всегда есть window.parent !== window
+const isInTelegram = typeof window !== "undefined" && window.parent !== window;
+
+const hasRealTgData = (!!realTg && (!!realTg.initData || !!realTg.initDataUnsafe?.user?.id)) || hasUrlParams || (forceMode && isInTelegram);
 
 console.log('🔍 Telegram detection:', {
   realTg: !!realTg,
@@ -220,12 +227,19 @@ console.log('🔍 Telegram detection:', {
   hasUser: !!realTg?.initDataUnsafe?.user?.id,
   hasUrlParams,
   tgWebAppData: tgWebAppData ? 'present' : 'none',
+  debugMode,
+  forceMode,
+  isInTelegram,
   hasRealTgData,
-  isDev
+  isDev,
+  userAgent: navigator.userAgent.includes('Telegram') ? 'contains Telegram' : 'no Telegram',
 });
 
-// Используем только реальный Telegram или null - НЕ создаем fallback!
-const tg = realTg || null;
+// Создаем минимальный WebApp объект если находимся в Telegram но нет данных
+const tg = realTg || (isInTelegram && hasRealTgData ? {
+  initData: null,
+  initDataUnsafe: { user: null },
+} : null);
 
 // Storage keys
 const LS_KEYS = {
@@ -247,7 +261,7 @@ function cartAdd(prev: Record<string, number>, id: string, n = 1) {
 export default function App() {
   const currentTgId: string | null = tg?.initDataUnsafe?.user?.id
     ? String(tg.initDataUnsafe.user.id)
-    : null;
+    : (hasRealTgData ? "telegram_user" : null); // Fallback для случаев когда данные есть, но user.id нет
 
   // Показываем из LS сразу — UI мгновенно с номером/звёздами
   const [cardNumber, setCardNumber] = useState<string>(
@@ -361,7 +375,7 @@ export default function App() {
       }
       
       // Если нет currentTgId и нет данных - не регистрируем
-      if (!currentTgId && !tg?.initData && !tg?.initDataUnsafe?.user?.id) {
+      if (!currentTgId && !tg?.initData && !tg?.initDataUnsafe?.user?.id && !tgWebAppData) {
         console.log('❌ No user data available - skipping registration');
         return null;
       }
