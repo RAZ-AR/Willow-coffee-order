@@ -282,6 +282,7 @@ export default function App() {
   useEffect(() => {
     const owner = localStorage.getItem(LS_KEYS.owner);
     if (currentTgId && owner && owner !== currentTgId) {
+      console.log('🔄 Owner changed from', owner, 'to', currentTgId, '- clearing cache');
       localStorage.removeItem(LS_KEYS.card);
       localStorage.removeItem(LS_KEYS.stars);
       localStorage.removeItem(LS_KEYS.cart);
@@ -290,6 +291,7 @@ export default function App() {
       setCart({});
       localStorage.setItem(LS_KEYS.owner, currentTgId);
     } else if (currentTgId && !owner) {
+      console.log('🆕 Setting owner to', currentTgId);
       localStorage.setItem(LS_KEYS.owner, currentTgId);
     }
   }, [currentTgId]);
@@ -424,6 +426,7 @@ export default function App() {
         });
         setLastStarsResp(resp);
         if (resp?.card && resp.card !== cardNumber) {
+          console.log('🔄 Card updated from', cardNumber, 'to', resp.card);
           setCardNumber(String(resp.card));
           localStorage.setItem(LS_KEYS.card, String(resp.card));
         }
