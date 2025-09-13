@@ -206,12 +206,20 @@ const generateTestUserId = () => {
 };
 // Проверяем есть ли реальный Telegram WebApp с данными
 const realTg = typeof window !== "undefined" && (window as any).Telegram?.WebApp;
-const hasRealTgData = realTg && (realTg.initData || realTg.initDataUnsafe?.user?.id);
+
+// Проверяем URL параметры от Telegram (для Desktop)
+const urlParams = new URLSearchParams(window.location.search);
+const tgWebAppData = urlParams.get('tgWebAppData');
+const hasUrlParams = !!tgWebAppData;
+
+const hasRealTgData = !!realTg && (!!realTg.initData || !!realTg.initDataUnsafe?.user?.id || hasUrlParams);
 
 console.log('🔍 Telegram detection:', {
   realTg: !!realTg,
   hasInitData: !!realTg?.initData,
   hasUser: !!realTg?.initDataUnsafe?.user?.id,
+  hasUrlParams,
+  tgWebAppData: tgWebAppData ? 'present' : 'none',
   hasRealTgData,
   isDev
 });
@@ -363,7 +371,7 @@ export default function App() {
       try {
         const resp = await postJSON(BACKEND_URL, {
           action: "register",
-          initData: tg?.initData || null,
+          initData: tg?.initData || tgWebAppData || null,
           user: tg?.initDataUnsafe?.user || null,
           ts: Date.now(),
         });
@@ -421,7 +429,7 @@ export default function App() {
       try {
         const resp = await postJSON(BACKEND_URL, {
           action: "stars",
-          initData: tg?.initData || null,
+          initData: tg?.initData || tgWebAppData || null,
           user: tg?.initDataUnsafe?.user || null,
         });
         setLastStarsResp(resp);
@@ -589,7 +597,7 @@ export default function App() {
 
                 const resp = await postJSON(BACKEND_URL, {
                   action: "order",
-                  initData: tg?.initData || null,
+                  initData: tg?.initData || tgWebAppData || null,
                   user: tg?.initDataUnsafe?.user || null,
                   card: cardNumber || null,
                   total,
