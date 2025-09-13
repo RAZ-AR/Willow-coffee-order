@@ -38,7 +38,10 @@ export const useTelegramAuth = (): TelegramAuthResult => {
     console.log('🔍 Telegram detection:', {
       realTg: !!realTg,
       hasInitData: !!realTg?.initData,
+      initDataValue: realTg?.initData,
       hasUser: !!realTg?.initDataUnsafe?.user?.id,
+      userObject: realTg?.initDataUnsafe?.user,
+      initDataUnsafe: realTg?.initDataUnsafe,
       hasUrlParams,
       tgWebAppData: tgWebAppData ? 'present' : 'none',
       debugMode,

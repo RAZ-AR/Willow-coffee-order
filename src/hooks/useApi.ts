@@ -28,13 +28,17 @@ export const useApi = ({ tg, currentTgId, hasRealTgData, tgWebAppData }: UseApiP
     
     console.log('✅ Proceeding with registration for user:', currentTgId);
     
+    const payload = {
+      action: "register",
+      initData: tg?.initData || tgWebAppData || null,
+      user: tg?.initDataUnsafe?.user || null,
+      ts: Date.now(),
+    };
+    
+    console.log('📤 Sending to backend:', payload);
+    
     try {
-      const resp = await postJSON<RegisterResponse>(BACKEND_URL, {
-        action: "register",
-        initData: tg?.initData || tgWebAppData || null,
-        user: tg?.initDataUnsafe?.user || null,
-        ts: Date.now(),
-      });
+      const resp = await postJSON<RegisterResponse>(BACKEND_URL, payload);
       return resp;
     } catch (error) {
       console.error('Registration error:', error);
