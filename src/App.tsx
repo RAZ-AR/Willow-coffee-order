@@ -204,8 +204,9 @@ const generateTestUserId = () => {
     return (Math.random() * 1_000_000) | 0;
   }
 };
-const tg = (typeof window !== "undefined" &&
-  (window as any).Telegram?.WebApp) || {
+// Проверяем есть ли реальный Telegram WebApp
+const realTg = typeof window !== "undefined" && (window as any).Telegram?.WebApp;
+const tg = realTg || {
   initDataUnsafe: {
     user: {
       id: generateTestUserId(),
@@ -340,8 +341,20 @@ export default function App() {
 
     const tryOnce = async () => {
       if (!BACKEND_URL) return null;
+      
+      // Если есть реальный Telegram но данные пустые - не регистрируем
+      if (realTg && !realTg.initData && !realTg.initDataUnsafe?.user?.id) {
+        return null;
+      }
+      
+      // Если нет реального Telegram - используем fallback только в dev режиме
+      if (!realTg && !isDev) {
+        return null;
+      }
+      
       // Разрешаем вызов если есть currentTgId ИЛИ есть initData ИЛИ есть fallback user
       if (!currentTgId && !(tg as any)?.initData && !tg?.initDataUnsafe?.user?.id) return null;
+      
       try {
         const resp = await postJSON(BACKEND_URL, {
           action: "register",
