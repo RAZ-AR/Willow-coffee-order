@@ -61,20 +61,33 @@ export const useLoyalty = ({ tg, currentTgId, hasRealTgData, tgWebAppData }: Use
     let currentCard = "";
 
     const tryOnce = async () => {
+      console.log('🎯 useLoyalty: Attempting registration...', { currentTgId, hasRealTgData });
       const resp = await api.register();
+      console.log('🎯 useLoyalty: Registration response:', resp);
       setLastRegisterResp(resp);
-      if (aborted || !resp) return null;
+      if (aborted || !resp) {
+        console.log('❌ useLoyalty: Registration aborted or no response');
+        return null;
+      }
       
       if (resp?.card) {
         const cardStr = String(resp.card);
+        console.log('✅ useLoyalty: Got card number:', cardStr);
         setCardNumber(cardStr);
         localStorage.setItem(LS_KEYS.card, cardStr);
         currentCard = cardStr;
+      } else {
+        console.log('❌ useLoyalty: No card in response');
       }
+      
       if (typeof resp?.stars === "number") {
+        console.log('✅ useLoyalty: Got stars:', resp.stars);
         setStars(resp.stars);
         localStorage.setItem(LS_KEYS.stars, String(resp.stars));
+      } else {
+        console.log('❌ useLoyalty: No stars in response');
       }
+      
       setIsLoadingCard(false);
       return resp?.card || null;
     };
