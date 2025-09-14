@@ -30,11 +30,19 @@ export const useLoyalty = ({ tg, currentTgId, hasRealTgData, tgWebAppData }: Use
       const qs = new URLSearchParams(window.location.search);
       const shouldReset = qs.has("reset") && qs.get("reset") === "1";
       if (shouldReset) {
+        console.log('🧹 Reset flag detected - clearing all local data');
         localStorage.removeItem(LS_KEYS.card);
         localStorage.removeItem(LS_KEYS.stars);
         localStorage.removeItem(LS_KEYS.cart);
+        localStorage.removeItem(LS_KEYS.owner);
         setCardNumber("");
         setStars(0);
+      } else {
+        console.log('💾 Initial localStorage state:', {
+          card: localStorage.getItem(LS_KEYS.card),
+          stars: localStorage.getItem(LS_KEYS.stars),
+          owner: localStorage.getItem(LS_KEYS.owner),
+        });
       }
     } catch {}
   }, []);

@@ -97,13 +97,13 @@ export const useTelegramAuth = (): TelegramAuthResult => {
     }
     // Временный fallback на сохраненный ID из localStorage для тестирования
     else if (hasRealTgData && !userId) {
-      const savedOwner = localStorage.getItem('willow_owner');
+      const savedOwner = localStorage.getItem('willow_owner_tg_id'); // используем правильный ключ
       if (savedOwner && savedOwner !== 'telegram_user') {
         userId = savedOwner;
         console.log('🔄 Using saved owner ID:', userId);
       } else {
         // Fallback на фиксированный ID для тестирования
-        userId = '421238'; // используем тот ID который видели в логах ранее
+        userId = '128136200'; // используем реальный ID из таблицы
         console.log('🆘 Using fallback test ID:', userId);
       }
     }

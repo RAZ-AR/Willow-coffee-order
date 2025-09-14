@@ -65,15 +65,23 @@ export const useApi = ({ tg, currentTgId, hasRealTgData, tgWebAppData }: UseApiP
   }, [BACKEND_URL, hasRealTgData, currentTgId, tg, tgWebAppData]);
 
   const submitOrder = useCallback(async (orderData: Omit<OrderRequest, 'action' | 'initData' | 'user'>): Promise<OrderResponse | null> => {
-    if (!BACKEND_URL || !currentTgId) return null;
+    if (!BACKEND_URL || !currentTgId) {
+      console.log('❌ Submit order blocked - missing BACKEND_URL or currentTgId:', { BACKEND_URL: !!BACKEND_URL, currentTgId });
+      return null;
+    }
+
+    const payload = {
+      ...orderData,
+      action: "order",
+      initData: tg?.initData || tgWebAppData || null,
+      user: tg?.initDataUnsafe?.user || null,
+    };
+    
+    console.log('📦 Submitting order:', payload);
 
     try {
-      const resp = await postJSON<OrderResponse>(BACKEND_URL, {
-        ...orderData,
-        action: "order",
-        initData: tg?.initData || tgWebAppData || null,
-        user: tg?.initDataUnsafe?.user || null,
-      });
+      const resp = await postJSON<OrderResponse>(BACKEND_URL, payload);
+      console.log('📦 Order response:', resp);
       return resp;
     } catch (error) {
       console.error('Submit order error:', error);
