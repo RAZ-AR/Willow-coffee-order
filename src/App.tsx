@@ -23,6 +23,8 @@ import {
   BottomBar,
 } from "./components";
 
+import { TestRunner } from "./components/DevTools";
+
 /**
  * Willow Telegram Mini-App — Frontend (v7.0 - REFACTORED)
  * - Modular architecture with custom hooks and components
@@ -260,6 +262,8 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {debugVisible && <TestRunner />}
     </div>
   );
 }
