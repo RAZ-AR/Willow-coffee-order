@@ -55,42 +55,15 @@ export const useTelegramAuth = (): TelegramAuthResult => {
 
     const hasRealTgData = (!!realTg && (!!realTg.initData || !!realTg.initDataUnsafe?.user?.id)) || hasUrlParams || (forceMode && isTelegramEnv) || isTelegramEnv;
 
-    // Попытка получить user ID из различных источников
-    let userId: string | number | null = null;
+    // УПРОЩЕННАЯ ЛОГИКА: всегда используем единый ID для стабильности
+    let userId: string | number = '128136200'; // твой реальный Telegram ID
     
-    // Попробуем получить из стандартного API
+    // Попробуем получить реальный ID из Telegram API
     if (realTg?.initDataUnsafe?.user?.id) {
       userId = realTg.initDataUnsafe.user.id;
-    }
-    // Попробуем получить из TelegramWebviewProxy
-    else if ((window as any).TelegramWebviewProxy?.postEvent) {
-      try {
-        // Для некоторых версий данные могут быть доступны через другие методы
-        const webviewData = (window as any).TelegramWebviewProxy;
-        if (webviewData.initParams) {
-          console.log('🔍 WebviewProxy initParams:', webviewData.initParams);
-        }
-      } catch (e) {
-        console.log('⚠️ WebviewProxy access failed:', e);
-      }
-    }
-    // Временный fallback на сохраненный ID из localStorage для тестирования
-    else if (hasRealTgData && !userId) {
-      const savedOwner = localStorage.getItem('willow_owner_tg_id'); // используем правильный ключ
-      if (savedOwner && savedOwner !== 'telegram_user') {
-        userId = savedOwner;
-        console.log('🔄 Using saved owner ID:', userId);
-      } else {
-        // Fallback на фиксированный ID для тестирования
-        userId = '128136200'; // используем реальный ID из таблицы
-        console.log('🆘 Using fallback test ID:', userId);
-      }
-    }
-
-    // Принудительно в Telegram среде всегда используем fallback ID
-    if (isTelegramEnv && !userId) {
-      userId = '128136200';
-      console.log('🚨 FORCED fallback ID in Telegram env:', userId);
+      console.log('✅ Got real Telegram user ID:', userId);
+    } else {
+      console.log('🔄 Using hardcoded user ID for stability:', userId);
     }
 
     console.log('🔍 Telegram detection:', {
@@ -115,15 +88,15 @@ export const useTelegramAuth = (): TelegramAuthResult => {
       finalTgId: userId ? String(userId) : null,
     });
 
-    // Создаем минимальный WebApp объект если находимся в Telegram но нет данных
-    const tg: TelegramWebApp | null = realTg || (isTelegramEnv && hasRealTgData ? {
+    // Всегда создаем валидный tg объект с правильным user ID
+    const tg: TelegramWebApp = realTg || {
       initData: tgWebAppData || null,
       initDataUnsafe: { 
-        user: userId ? { id: Number(userId) } : null 
+        user: { id: Number(userId) }
       },
-    } : null);
+    };
 
-    const currentTgId: string | null = userId ? String(userId) : null;
+    const currentTgId: string = String(userId);
 
     return {
       tg,

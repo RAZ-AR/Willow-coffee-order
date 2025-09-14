@@ -24,13 +24,15 @@ export const useLoyalty = ({ tg, currentTgId, hasRealTgData, tgWebAppData }: Use
 
   const api = useApi({ tg, currentTgId, hasRealTgData, tgWebAppData });
 
-  // Одноразовый сброс локального состояния по флагу ?reset=1
+  // Принудительная очистка для отладки (временно)
   useEffect(() => {
     try {
       const qs = new URLSearchParams(window.location.search);
       const shouldReset = qs.has("reset") && qs.get("reset") === "1";
-      if (shouldReset) {
-        console.log('🧹 Reset flag detected - clearing all local data');
+      const forceClean = true; // ВРЕМЕННО: принудительная очистка каждый раз
+      
+      if (shouldReset || forceClean) {
+        console.log('🧹 FORCE CLEAN - clearing all local data');
         localStorage.removeItem(LS_KEYS.card);
         localStorage.removeItem(LS_KEYS.stars);
         localStorage.removeItem(LS_KEYS.cart);
