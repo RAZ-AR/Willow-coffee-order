@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Willow Debug - Force Deploy Fix</title>
+    <script>
+        // ПРИНУДИТЕЛЬНОЕ ИСПРАВЛЕНИЕ - хардкод userId в глобальную переменную
+        window.FORCE_USER_ID = '128136200';
+        window.FORCE_TELEGRAM_DATA = true;
+        
+        console.log('🚨 FORCE DEBUG MODE ACTIVE');
+        console.log('🔧 Forced user ID:', window.FORCE_USER_ID);
+        
+        // Эмулируем Telegram WebApp объект
+        window.Telegram = {
+            WebApp: {
+                initDataUnsafe: {
+                    user: { id: 128136200 }
+                },
+                initData: null
+            }
+        };
+        
+        // Перенаправляем на основное приложение через 2 секунды
+        setTimeout(() => {
+            console.log('🔄 Redirecting to main app with forced Telegram data...');
+            window.location.href = './index.html';
+        }, 2000);
+    </script>
+</head>
+<body>
+    <h1>🛠️ Willow Debug Mode</h1>
+    <p>Принудительная установка Telegram user ID: <strong>128136200</strong></p>
+    <p>Перенаправление через 2 секунды...</p>
+    <p><a href="./index.html">Перейти сразу</a></p>
+</body>
+</html>
