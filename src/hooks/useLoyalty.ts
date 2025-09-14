@@ -24,28 +24,27 @@ export const useLoyalty = ({ tg, currentTgId, hasRealTgData, tgWebAppData }: Use
 
   const api = useApi({ tg, currentTgId, hasRealTgData, tgWebAppData });
 
-  // Принудительная очистка для отладки (временно)
+  // Очистка только по флагу ?reset=1
   useEffect(() => {
     try {
       const qs = new URLSearchParams(window.location.search);
       const shouldReset = qs.has("reset") && qs.get("reset") === "1";
-      const forceClean = true; // ВРЕМЕННО: принудительная очистка каждый раз
       
-      if (shouldReset || forceClean) {
-        console.log('🧹 FORCE CLEAN - clearing all local data');
+      if (shouldReset) {
+        console.log('🧹 Reset flag detected - clearing all local data');
         localStorage.removeItem(LS_KEYS.card);
         localStorage.removeItem(LS_KEYS.stars);
         localStorage.removeItem(LS_KEYS.cart);
         localStorage.removeItem(LS_KEYS.owner);
         setCardNumber("");
         setStars(0);
-      } else {
-        console.log('💾 Initial localStorage state:', {
-          card: localStorage.getItem(LS_KEYS.card),
-          stars: localStorage.getItem(LS_KEYS.stars),
-          owner: localStorage.getItem(LS_KEYS.owner),
-        });
       }
+      
+      console.log('💾 Initial localStorage state:', {
+        card: localStorage.getItem(LS_KEYS.card),
+        stars: localStorage.getItem(LS_KEYS.stars),
+        owner: localStorage.getItem(LS_KEYS.owner),
+      });
     } catch {}
   }, []);
 
@@ -83,9 +82,14 @@ export const useLoyalty = ({ tg, currentTgId, hasRealTgData, tgWebAppData }: Use
       if (resp?.card) {
         const cardStr = String(resp.card);
         console.log('✅ useLoyalty: Got card number:', cardStr);
+        console.log('💾 useLoyalty: Saving card to localStorage with key:', LS_KEYS.card);
         setCardNumber(cardStr);
         localStorage.setItem(LS_KEYS.card, cardStr);
         currentCard = cardStr;
+        
+        // Проверим что сохранилось
+        const saved = localStorage.getItem(LS_KEYS.card);
+        console.log('✔️ useLoyalty: Card saved successfully:', saved);
       } else {
         console.log('❌ useLoyalty: No card in response');
       }

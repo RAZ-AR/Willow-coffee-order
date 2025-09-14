@@ -101,7 +101,12 @@ export default function App() {
     table: number | null,
     payment: "cash" | "card" | "stars"
   ) => {
-    if (!currentTgId) return;
+    console.log('📦 handleOrderSubmit called with:', { when, table, payment, currentTgId });
+    
+    if (!currentTgId) {
+      console.log('❌ handleOrderSubmit blocked - no currentTgId');
+      return;
+    }
 
     try {
       const orderLines = Object.entries(cart.cart)
@@ -116,6 +121,9 @@ export default function App() {
           };
         });
 
+      console.log('📦 Calling submitOrder with orderLines:', orderLines);
+      console.log('📦 Order details:', { card: loyalty.cardNumber, total: cart.total, when, table, payment });
+      
       const resp = await api.submitOrder({
         card: loyalty.cardNumber || null,
         total: cart.total,
@@ -124,6 +132,8 @@ export default function App() {
         payment,
         items: orderLines,
       });
+
+      console.log('📦 Order submit response:', resp);
 
       if (resp && typeof resp.stars === "number") {
         loyalty.updateStars(resp.stars);

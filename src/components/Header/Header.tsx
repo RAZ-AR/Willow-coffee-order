@@ -27,6 +27,17 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const showCard = cardNumber && /^\d{4}$/.test(cardNumber);
   const cardBadge = showCard ? `#${cardNumber}` : isLoadingCard ? "#…" : "—";
+  
+  // Логирование для отладки
+  console.log('🎨 Header render:', {
+    cardNumber,
+    cardNumberType: typeof cardNumber,
+    cardNumberLength: cardNumber?.length,
+    regexTest: cardNumber ? /^\d{4}$/.test(cardNumber) : false,
+    showCard,
+    isLoadingCard,
+    cardBadge
+  });
 
   return (
     <div className="sticky top-0 z-10 bg-white/90 backdrop-blur border-b">
