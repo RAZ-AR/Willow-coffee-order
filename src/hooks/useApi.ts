@@ -14,15 +14,9 @@ export const useApi = ({ tg, currentTgId, hasRealTgData, tgWebAppData }: UseApiP
   const register = useCallback(async (): Promise<RegisterResponse | null> => {
     if (!BACKEND_URL) return null;
     
-    // Только если есть реальные данные Telegram - регистрируем  
-    if (!hasRealTgData) {
-      console.log('❌ No real Telegram data - skipping registration');
-      return null;
-    }
-    
-    // Если нет currentTgId и нет данных - не регистрируем
-    if (!currentTgId && !tg?.initData && !tg?.initDataUnsafe?.user?.id && !tgWebAppData) {
-      console.log('❌ No user data available - skipping registration');
+    // Регистрируем если есть currentTgId (стабильный подход)
+    if (!currentTgId) {
+      console.log('❌ No currentTgId - skipping registration');
       return null;
     }
     
@@ -53,10 +47,10 @@ export const useApi = ({ tg, currentTgId, hasRealTgData, tgWebAppData }: UseApiP
       console.error('Registration error:', error);
       return { error: "network_or_cors" } as any;
     }
-  }, [BACKEND_URL, hasRealTgData, currentTgId, tg, tgWebAppData]);
+  }, [BACKEND_URL, currentTgId, tg, tgWebAppData]);
 
   const getStars = useCallback(async (): Promise<StarsResponse | null> => {
-    if (!BACKEND_URL || !hasRealTgData || (!currentTgId && !tg?.initData)) {
+    if (!BACKEND_URL || !currentTgId) {
       return null;
     }
 
@@ -78,7 +72,7 @@ export const useApi = ({ tg, currentTgId, hasRealTgData, tgWebAppData }: UseApiP
       console.error('Get stars error:', error);
       return { error: "network_or_cors" } as any;
     }
-  }, [BACKEND_URL, hasRealTgData, currentTgId, tg, tgWebAppData]);
+  }, [BACKEND_URL, currentTgId, tg, tgWebAppData]);
 
   const submitOrder = useCallback(async (orderData: Omit<OrderRequest, 'action' | 'initData' | 'user'>): Promise<OrderResponse | null> => {
     if (!BACKEND_URL || !currentTgId) {
