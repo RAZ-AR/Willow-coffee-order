@@ -55,27 +55,6 @@ export const useTelegramAuth = (): TelegramAuthResult => {
 
     const hasRealTgData = (!!realTg && (!!realTg.initData || !!realTg.initDataUnsafe?.user?.id)) || hasUrlParams || (forceMode && isTelegramEnv) || isTelegramEnv;
 
-    console.log('🔍 Telegram detection:', {
-      realTg: !!realTg,
-      hasInitData: !!realTg?.initData,
-      initDataValue: realTg?.initData,
-      hasUser: !!realTg?.initDataUnsafe?.user?.id,
-      userObject: realTg?.initDataUnsafe?.user,
-      initDataUnsafe: realTg?.initDataUnsafe,
-      hasUrlParams,
-      tgWebAppData: tgWebAppData ? 'present' : 'none',
-      debugMode,
-      forceMode,
-      isInTelegram,
-      isTelegramEnv,
-      hasRealTgData,
-      isDev,
-      userAgent: navigator.userAgent.includes('Telegram') ? 'contains Telegram' : 'no Telegram',
-      webviewProxy: !!(window as any).TelegramWebviewProxy,
-      extractedUserId: userId,
-      finalTgId: userId ? String(userId) : null,
-    });
-
     // Попытка получить user ID из различных источников
     let userId: string | number | null = null;
     
@@ -107,6 +86,34 @@ export const useTelegramAuth = (): TelegramAuthResult => {
         console.log('🆘 Using fallback test ID:', userId);
       }
     }
+
+    // Принудительно в Telegram среде всегда используем fallback ID
+    if (isTelegramEnv && !userId) {
+      userId = '128136200';
+      console.log('🚨 FORCED fallback ID in Telegram env:', userId);
+    }
+
+    console.log('🔍 Telegram detection:', {
+      realTg: !!realTg,
+      hasInitData: !!realTg?.initData,
+      initDataValue: realTg?.initData,
+      hasUser: !!realTg?.initDataUnsafe?.user?.id,
+      userObject: realTg?.initDataUnsafe?.user,
+      initDataUnsafe: realTg?.initDataUnsafe,
+      hasUrlParams,
+      tgWebAppData: tgWebAppData ? 'present' : 'none',
+      debugMode,
+      forceMode,
+      isInTelegram,
+      isTelegramEnv,
+      hasRealTgData,
+      isDev,
+      userAgent: navigator.userAgent.includes('Telegram') ? 'contains Telegram' : 'no Telegram',
+      webviewProxy: !!(window as any).TelegramWebviewProxy,
+      windowTelegram: (window as any).Telegram,
+      extractedUserId: userId,
+      finalTgId: userId ? String(userId) : null,
+    });
 
     // Создаем минимальный WebApp объект если находимся в Telegram но нет данных
     const tg: TelegramWebApp | null = realTg || (isTelegramEnv && hasRealTgData ? {
