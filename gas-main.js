@@ -593,7 +593,7 @@ function apiOrder_(payload) {
     var totalStars = getUserStars_(user.id);
     
     // Отправляем только критически важные уведомления быстро
-    sendOrderNotifications_(user, cardNumber, total, when, table, payment, items, starsEarned);
+    sendOrderNotifications_(user, cardNumber, total, when, table, payment, items, starsEarned, totalStars);
     
     return { 
       ok: true, 
@@ -608,7 +608,7 @@ function apiOrder_(payload) {
   }
 }
 
-function sendOrderNotifications_(user, cardNumber, total, when, table, payment, items, starsEarned) {
+function sendOrderNotifications_(user, cardNumber, total, when, table, payment, items, starsEarned, totalStars) {
   var nick = user.username ? '@' + user.username : (user.first_name || String(user.id));
   
   var itemsHtml = (items || []).map(function(item) {
@@ -639,9 +639,9 @@ function sendOrderNotifications_(user, cardNumber, total, when, table, payment, 
   
   // Сообщение для клиента с благодарностью и информацией о звездах
   var lang = langFromUser_(user);
-  var totalStars = getUserStars_(user.id);
-  var thanksMessage = starsEarned > 0 ? 
-    `\n\n🎉 <b>Спасибо за заказ!</b>\n⭐ Вы получили ${starsEarned} звезд${starsEarned > 1 ? 'ы' : 'у'}\n💫 Всего звезд: ${totalStars}` : 
+  // Используем переданное значение totalStars вместо пересчета
+  var thanksMessage = starsEarned > 0 ?
+    `\n\n🎉 <b>Спасибо за заказ!</b>\n⭐ Вы получили ${starsEarned} звезд${starsEarned > 1 ? 'ы' : 'у'}\n💫 У вас теперь ${totalStars} звезд${totalStars > 1 ? '' : 'а'}!` :
     '\n\n🎉 <b>Спасибо за заказ!</b>';
     
   var clientHtml = [
@@ -723,34 +723,15 @@ function adjustStarsFromMessage_(text, chatId) {
       return { ok: false, reason: 'card_not_found' };
     }
     
-    // Обновляем звезды пользователя
-    var usersSheet = getSheet_('Users');
-    var usersLastRow = usersSheet.getLastRow();
-    var newTotal = 0;
-    var userUpdated = false;
-    
-    if (usersLastRow > 1) {
-      var usersData = usersSheet.getRange(2, 1, usersLastRow - 1, 4).getValues();
-      for (var j = 0; j < usersData.length; j++) {
-        if (String(usersData[j][0]) === String(userTelegramId)) {
-          var currentStars = Number(usersData[j][3]) || 0;
-          newTotal = Math.max(0, currentStars + delta);
-          usersSheet.getRange(j + 2, 4).setValue(newTotal);
-          userUpdated = true;
-          break;
-        }
-      }
-    }
-    
-    if (!userUpdated) {
-      // Создаем новую запись пользователя
-      newTotal = Math.max(0, delta);
-      usersSheet.appendRow([userTelegramId, '', cardNumber, newTotal, new Date()]);
-    }
-    
-    // Логируем изменение
+    // Получаем текущее количество звезд из StarsLog
+    var currentStars = getCardStars_(cardNumber);
+
+    // Вычисляем новое количество (не меньше 0)
+    var newTotal = Math.max(0, currentStars + delta);
+
+    // Логируем изменение в StarsLog
     var starsLogSheet = getSheet_('StarsLog');
-    starsLogSheet.appendRow([cardNumber, delta, 'cashier', new Date()]);
+    starsLogSheet.appendRow([cardNumber, delta, 'manual_adjustment', new Date()]);
     
     // Уведомляем кассира
     if (chatId) {
@@ -760,7 +741,15 @@ function adjustStarsFromMessage_(text, chatId) {
     
     // Уведомляем пользователя
     if (userTelegramId) {
-      tgSendHTML_(userTelegramId, '⭐ Your stars were updated: total <b>' + newTotal + '</b>');
+      var message = '';
+      if (delta > 0) {
+        message = '🎉 Вы получили <b>' + delta + '</b> звезд' + (delta > 1 ? 'ы' : 'у') + '!\n⭐ У вас теперь <b>' + newTotal + '</b> звезд' + (newTotal > 1 ? '' : 'а');
+      } else if (delta < 0) {
+        message = '⭐ У вас списано <b>' + Math.abs(delta) + '</b> звезд' + (Math.abs(delta) > 1 ? '' : 'а') + '.\n💫 У вас осталось <b>' + newTotal + '</b> звезд' + (newTotal > 1 ? '' : 'а');
+      }
+      if (message) {
+        tgSendHTML_(userTelegramId, message);
+      }
     }
     
     return { 
