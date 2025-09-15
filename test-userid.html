@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test User ID Generation</title>
+</head>
+<body>
+    <h1>Test User ID Generation</h1>
+    <button onclick="testUserIdGeneration()">Test User ID</button>
+    <div id="output"></div>
+
+    <script>
+        // Копируем логику из useTelegramAuth
+        const generateTestUserId = () => {
+            const key = "test_user_id";
+            try {
+                const stored = localStorage.getItem(key);
+                if (stored && parseInt(stored) > 100000) return parseInt(stored);
+
+                const newId = Math.floor(Math.random() * 900000000) + 100000000;
+                localStorage.setItem(key, String(newId));
+                console.log('🆕 Generated new test user ID:', newId);
+                return newId;
+            } catch {
+                return Math.floor(Math.random() * 900000000) + 100000000;
+            }
+        };
+
+        function testUserIdGeneration() {
+            // Очищаем localStorage
+            localStorage.removeItem("test_user_id");
+
+            // Генерируем 3 ID подряд
+            const ids = [];
+            for (let i = 0; i < 3; i++) {
+                localStorage.removeItem("test_user_id");
+                const id = generateTestUserId();
+                ids.push(id);
+            }
+
+            document.getElementById('output').innerHTML = `
+                <h3>Generated IDs:</h3>
+                <p>ID 1: ${ids[0]}</p>
+                <p>ID 2: ${ids[1]}</p>
+                <p>ID 3: ${ids[2]}</p>
+                <p>All different: ${new Set(ids).size === 3 ? '✅ YES' : '❌ NO'}</p>
+                <p>All 9-digit: ${ids.every(id => id >= 100000000) ? '✅ YES' : '❌ NO'}</p>
+            `;
+        }
+    </script>
+</body>
+</html>

@@ -82,6 +82,7 @@ export const useTelegramAuth = (): TelegramAuthResult => {
       // В dev режиме или для тестирования генерируем уникальный ID
       userId = generateTestUserId();
       console.log('🔄 Generated unique test user ID:', userId);
+      console.log('🔥 VERSION CHECK: useTelegramAuth.ts updated at 15.09.2025 17:25');
     }
 
     console.log('🔍 Telegram detection:', {

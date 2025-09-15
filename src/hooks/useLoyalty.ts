@@ -19,10 +19,19 @@ export const useLoyalty = ({ tg, currentTgId, hasRealTgData, tgWebAppData }: Use
   // ВРЕМЕННО: Полная очистка кеша при каждой загрузке для отладки
   useEffect(() => {
     console.log('🧹 TEMP: Force clearing ALL localStorage for debugging');
-    localStorage.removeItem(LS_KEYS.card);
-    localStorage.removeItem(LS_KEYS.stars);
-    localStorage.removeItem(LS_KEYS.owner);
-    localStorage.removeItem('test_user_id'); // Очищаем и тестовый ID
+    console.log('🔥 VERSION CHECK: useLoyalty.ts updated at 15.09.2025 17:25');
+    console.log('🔍 Current localStorage before clear:', {
+      card: localStorage.getItem(LS_KEYS.card),
+      stars: localStorage.getItem(LS_KEYS.stars),
+      owner: localStorage.getItem(LS_KEYS.owner),
+      test_user_id: localStorage.getItem('test_user_id')
+    });
+
+    // Полная очистка ВСЕХ ключей приложения
+    Object.values(LS_KEYS).forEach(key => localStorage.removeItem(key));
+    localStorage.removeItem('test_user_id');
+
+    console.log('✅ localStorage cleared completely');
   }, []);
   const [lastRegisterResp, setLastRegisterResp] = useState<any>(null);
   const [lastStarsResp, setLastStarsResp] = useState<any>(null);
