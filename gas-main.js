@@ -583,24 +583,19 @@ function apiOrder_(payload) {
       new Date()
     ]);
     
-    // Рассчитываем и начисляем звезды за заказ
-    var starsEarned = calculateStarsForAmount_(total);
-    if (starsEarned > 0) {
-      addStarsToCard_(cardNumber, starsEarned, `Заказ #${orderId} на сумму ${total} RSD`);
-      console.log(`⭐ Added ${starsEarned} stars for order ${orderId}`);
-    }
-    
+    // Звезды НЕ начисляются автоматически - только вручную
+    var starsEarned = 0;
     var totalStars = getUserStars_(user.id);
-    
+
     // Отправляем только критически важные уведомления быстро
     sendOrderNotifications_(user, cardNumber, total, when, table, payment, items, starsEarned, totalStars);
     
-    return { 
-      ok: true, 
-      order_id: orderId, 
-      card: cardNumber, 
+    return {
+      ok: true,
+      order_id: orderId,
+      card: cardNumber,
       stars: totalStars,
-      stars_earned: starsEarned
+      stars_earned: 0
     };
   } catch (error) {
     console.log("❌ Order error:", error);
@@ -622,9 +617,7 @@ function sendOrderNotifications_(user, cardNumber, total, when, table, payment, 
     ('Now' + (table ? (' — <b>table ' + table + '</b>') : '')) : 
     ('+' + when + ' min');
   
-  // Сообщение для группы (кухня/бариста) с информацией о звездах
-  var starsInfo = starsEarned > 0 ? '\n⭐ <b>Звезд получено:</b> ' + starsEarned : '';
-  
+  // Сообщение для группы (кухня/бариста) без информации о звездах
   var groupHtml = [
     '<b>🧾 ' + t_('newOrder', 'en') + '</b>',
     '👤 ' + nick,
@@ -634,15 +627,12 @@ function sendOrderNotifications_(user, cardNumber, total, when, table, payment, 
     '📦 <b>' + t_('items', 'en') + ':</b>',
     itemsHtml,
     '— — —',
-    '💵 <b>' + t_('sum', 'en') + ':</b> ' + total + ' RSD' + starsInfo
+    '💵 <b>' + t_('sum', 'en') + ':</b> ' + total + ' RSD'
   ].join('\n');
   
-  // Сообщение для клиента с благодарностью и информацией о звездах
+  // Сообщение для клиента с благодарностью (без информации о звездах)
   var lang = langFromUser_(user);
-  // Используем переданное значение totalStars вместо пересчета
-  var thanksMessage = starsEarned > 0 ?
-    `\n\n🎉 <b>Спасибо за заказ!</b>\n⭐ Вы получили ${starsEarned} звезд${starsEarned > 1 ? 'ы' : 'у'}\n💫 У вас теперь ${totalStars} звезд${totalStars > 1 ? '' : 'а'}!` :
-    '\n\n🎉 <b>Спасибо за заказ!</b>';
+  var thanksMessage = '\n\n🎉 <b>Спасибо за заказ!</b>';
     
   var clientHtml = [
     '<b>' + t_('orderReceived', lang) + '</b>',
