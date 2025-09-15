@@ -562,12 +562,24 @@ function _resolveUserFromPayload_(payload) {
 
 function apiRegister_(payload) {
   console.log("🚀 apiRegister_ called");
+  console.log("🔥 VERSION CHECK: gas-main.js updated at 15.09.2025 17:45");
+  console.log("📥 Received payload:", JSON.stringify(payload, null, 2));
+
   ensureHeaders_();
-  
+
   var user = _resolveUserFromPayload_(payload);
+  console.log("👤 Resolved user:", JSON.stringify(user, null, 2));
+
   if (!user || !user.id) {
     console.log("❌ No valid user for registration");
     return { ok: false, error: 'no telegram user id' };
+  }
+
+  // КРИТИЧЕСКАЯ ОТЛАДКА
+  if (String(user.id) === '128136200') {
+    console.error("❌❌❌ BACKEND: Still receiving hardcoded ID 128136200! Frontend not updated!");
+  } else {
+    console.log("✅✅✅ BACKEND: Receiving dynamic user ID:", user.id);
   }
   
   try {

@@ -98,6 +98,20 @@ export const useTelegramAuth = () => {
             extractedUserId: userId,
             finalTgId: userId ? String(userId) : null,
         });
+        // КРИТИЧЕСКАЯ ОТЛАДКА: показываем откуда взялся ID
+        console.log('🚨 CRITICAL DEBUG - User ID source analysis:');
+        console.log('  - realTg exists:', !!realTg);
+        console.log('  - realTg.initDataUnsafe.user.id:', realTg?.initDataUnsafe?.user?.id);
+        console.log('  - hasUrlParams:', hasUrlParams);
+        console.log('  - tgWebAppData:', tgWebAppData);
+        console.log('  - Final userId:', userId);
+        console.log('  - Is hardcoded 128136200:', userId === '128136200' || userId === 128136200);
+        if (userId === '128136200' || userId === 128136200) {
+            console.error('❌❌❌ STILL USING HARDCODED ID 128136200! CODE NOT UPDATED! ❌❌❌');
+        }
+        else {
+            console.log('✅✅✅ Using dynamic ID - code is updated!');
+        }
         // Всегда создаем валидный tg объект с правильным user ID
         const tg = realTg || {
             initData: tgWebAppData || null,
