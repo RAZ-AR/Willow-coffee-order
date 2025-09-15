@@ -15,17 +15,35 @@ export const useLoyalty = ({ tg, currentTgId, hasRealTgData, tgWebAppData }: Use
   const [cardNumber, setCardNumber] = useState<string>("");
   const [stars, setStars] = useState<number>(0);
   const [isLoadingCard, setIsLoadingCard] = useState<boolean>(true);
+
+  // Принудительная очистка кеша при каждой загрузке компонента
+  useEffect(() => {
+    const savedCard = localStorage.getItem(LS_KEYS.card);
+    const savedOwner = localStorage.getItem(LS_KEYS.owner);
+
+    // Если есть сохраненная карта, но нет владельца или владелец неизвестен - очищаем
+    if (savedCard && (!savedOwner || !currentTgId)) {
+      console.log('🧹 Aggressive cache clear - removing orphaned card data');
+      localStorage.removeItem(LS_KEYS.card);
+      localStorage.removeItem(LS_KEYS.stars);
+      localStorage.removeItem(LS_KEYS.owner);
+    }
+  }, [currentTgId]);
   const [lastRegisterResp, setLastRegisterResp] = useState<any>(null);
   const [lastStarsResp, setLastStarsResp] = useState<any>(null);
 
   const api = useApi({ tg, currentTgId, hasRealTgData, tgWebAppData });
 
-  // Очистка только по флагу ?reset=1
+  // Очистка по флагу ?reset=1 ИЛИ автоматическая очистка кеша карт
   useEffect(() => {
     try {
       const qs = new URLSearchParams(window.location.search);
       const shouldReset = qs.has("reset") && qs.get("reset") === "1";
-      
+
+      // Принудительная очистка старых карт для избежания показа неправильных номеров
+      const savedOwner = localStorage.getItem(LS_KEYS.owner);
+      const savedCard = localStorage.getItem(LS_KEYS.card);
+
       if (shouldReset) {
         console.log('🧹 Reset flag detected - clearing all local data');
         localStorage.removeItem(LS_KEYS.card);
@@ -34,8 +52,15 @@ export const useLoyalty = ({ tg, currentTgId, hasRealTgData, tgWebAppData }: Use
         localStorage.removeItem(LS_KEYS.owner);
         setCardNumber("");
         setStars(0);
+      } else if (savedCard && !savedOwner) {
+        // Если есть карта, но нет owner - очищаем карту
+        console.log('🧹 Found orphaned card without owner - clearing');
+        localStorage.removeItem(LS_KEYS.card);
+        localStorage.removeItem(LS_KEYS.stars);
+        setCardNumber("");
+        setStars(0);
       }
-      
+
       console.log('💾 Initial localStorage state:', {
         card: localStorage.getItem(LS_KEYS.card),
         stars: localStorage.getItem(LS_KEYS.stars),

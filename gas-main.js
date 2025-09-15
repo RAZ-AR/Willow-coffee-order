@@ -36,10 +36,11 @@ function ensureHeaders_() {
     shCards.appendRow(['telegram_id', 'card_number', 'username', 'first_name', 'created_at']);
   }
   
-  var shUsers = getSheet_('Users');   
-  if (shUsers.getLastRow() === 0) {
-    shUsers.appendRow(['telegram_id', 'username', 'card_number', 'stars', 'created_at']);
-  }
+  // Таблица Users больше не используется
+  // var shUsers = getSheet_('Users');
+  // if (shUsers.getLastRow() === 0) {
+  //   shUsers.appendRow(['telegram_id', 'username', 'card_number', 'stars', 'created_at']);
+  // }
   
   var shOrders= getSheet_('Orders');  
   if (shOrders.getLastRow() === 0) {
@@ -331,8 +332,7 @@ function getOrCreateCardForUser_(tgUser, sendNotification) {
     console.log("➕ Created new card record:", newCardNumber);
   }
   
-  // Обновляем или создаем запись в Users
-  updateUserRecord_(tgUser, newCardNumber);
+  // Таблица Users больше не используется - данные только в Cards и StarsLog
   
   // Отправляем уведомление только если это запрошено (например, при /start)
   if (sendNotification !== false) {
