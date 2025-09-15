@@ -11,14 +11,10 @@ interface UseLoyaltyParams {
 }
 
 export const useLoyalty = ({ tg, currentTgId, hasRealTgData, tgWebAppData }: UseLoyaltyParams) => {
-  // Показываем из LS сразу — UI мгновенно с номером/звёздами
-  const [cardNumber, setCardNumber] = useState<string>(
-    () => localStorage.getItem(LS_KEYS.card) || "",
-  );
-  const [stars, setStars] = useState<number>(() =>
-    toNumber(localStorage.getItem(LS_KEYS.stars), 0),
-  );
-  const [isLoadingCard, setIsLoadingCard] = useState<boolean>(hasRealTgData);
+  // НЕ показываем из LS сразу - ждем ответ с сервера для правильного пользователя
+  const [cardNumber, setCardNumber] = useState<string>("");
+  const [stars, setStars] = useState<number>(0);
+  const [isLoadingCard, setIsLoadingCard] = useState<boolean>(true);
   const [lastRegisterResp, setLastRegisterResp] = useState<any>(null);
   const [lastStarsResp, setLastStarsResp] = useState<any>(null);
 
@@ -48,19 +44,32 @@ export const useLoyalty = ({ tg, currentTgId, hasRealTgData, tgWebAppData }: Use
     } catch {}
   }, []);
 
-  // Смена владельца → сброс локалки
+  // Смена владельца → сброс локалки, загрузка данных правильного пользователя
   useEffect(() => {
+    if (!currentTgId) return;
+
     const owner = localStorage.getItem(LS_KEYS.owner);
-    if (currentTgId && owner && owner !== currentTgId) {
+
+    if (owner && owner !== currentTgId) {
       console.log('🔄 Owner changed from', owner, 'to', currentTgId, '- clearing cache');
       localStorage.removeItem(LS_KEYS.card);
       localStorage.removeItem(LS_KEYS.stars);
       setCardNumber("");
       setStars(0);
       localStorage.setItem(LS_KEYS.owner, currentTgId);
-    } else if (currentTgId && !owner) {
+    } else if (!owner) {
       console.log('🆕 Setting owner to', currentTgId);
       localStorage.setItem(LS_KEYS.owner, currentTgId);
+    } else if (owner === currentTgId) {
+      // Тот же владелец - восстанавливаем из LS
+      const savedCard = localStorage.getItem(LS_KEYS.card);
+      const savedStars = localStorage.getItem(LS_KEYS.stars);
+
+      if (savedCard && /^\d{4}$/.test(savedCard)) {
+        console.log('🔄 Restoring saved card for same owner:', savedCard);
+        setCardNumber(savedCard);
+        setStars(toNumber(savedStars, 0));
+      }
     }
   }, [currentTgId]);
 
@@ -69,44 +78,35 @@ export const useLoyalty = ({ tg, currentTgId, hasRealTgData, tgWebAppData }: Use
     let aborted = false;
 
     const tryRegister = async () => {
-      // Проверяем есть ли уже карта в localStorage
-      const existingCard = localStorage.getItem(LS_KEYS.card);
-      if (existingCard && /^\d{4}$/.test(existingCard)) {
-        console.log('✅ useLoyalty: Card already exists in localStorage:', existingCard);
-        setCardNumber(existingCard);
-        setIsLoadingCard(false);
-        return;
-      }
-
       console.log('🎯 useLoyalty: Attempting registration...', { currentTgId, hasRealTgData });
       const resp = await api.register();
       console.log('🎯 useLoyalty: Registration response:', resp);
       setLastRegisterResp(resp);
-      
+
       if (aborted || !resp) {
         console.log('❌ useLoyalty: Registration aborted or no response');
         setIsLoadingCard(false);
         return;
       }
-      
+
       if (resp?.card) {
         const cardStr = String(resp.card);
         console.log('✅ useLoyalty: Got card number:', cardStr);
         console.log('💾 useLoyalty: Saving card to localStorage');
         setCardNumber(cardStr);
         localStorage.setItem(LS_KEYS.card, cardStr);
-        
+
         // Проверим что сохранилось
         const saved = localStorage.getItem(LS_KEYS.card);
         console.log('✔️ useLoyalty: Card saved successfully:', saved);
       }
-      
+
       if (typeof resp?.stars === "number") {
         console.log('✅ useLoyalty: Got stars:', resp.stars);
         setStars(resp.stars);
         localStorage.setItem(LS_KEYS.stars, String(resp.stars));
       }
-      
+
       setIsLoadingCard(false);
     };
 
