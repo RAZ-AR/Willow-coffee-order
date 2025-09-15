@@ -64,69 +64,60 @@ export const useLoyalty = ({ tg, currentTgId, hasRealTgData, tgWebAppData }: Use
     }
   }, [currentTgId]);
 
-  // Агрессивный register (3 быстрых попытки)
+  // Регистрация один раз при загрузке
   useEffect(() => {
     let aborted = false;
-    let currentCard = "";
 
-    const tryOnce = async () => {
+    const tryRegister = async () => {
+      // Проверяем есть ли уже карта в localStorage
+      const existingCard = localStorage.getItem(LS_KEYS.card);
+      if (existingCard && /^\d{4}$/.test(existingCard)) {
+        console.log('✅ useLoyalty: Card already exists in localStorage:', existingCard);
+        setCardNumber(existingCard);
+        setIsLoadingCard(false);
+        return;
+      }
+
       console.log('🎯 useLoyalty: Attempting registration...', { currentTgId, hasRealTgData });
       const resp = await api.register();
       console.log('🎯 useLoyalty: Registration response:', resp);
       setLastRegisterResp(resp);
+      
       if (aborted || !resp) {
         console.log('❌ useLoyalty: Registration aborted or no response');
-        return null;
+        setIsLoadingCard(false);
+        return;
       }
       
       if (resp?.card) {
         const cardStr = String(resp.card);
         console.log('✅ useLoyalty: Got card number:', cardStr);
-        console.log('💾 useLoyalty: Saving card to localStorage with key:', LS_KEYS.card);
+        console.log('💾 useLoyalty: Saving card to localStorage');
         setCardNumber(cardStr);
         localStorage.setItem(LS_KEYS.card, cardStr);
-        currentCard = cardStr;
         
         // Проверим что сохранилось
         const saved = localStorage.getItem(LS_KEYS.card);
         console.log('✔️ useLoyalty: Card saved successfully:', saved);
-      } else {
-        console.log('❌ useLoyalty: No card in response');
       }
       
       if (typeof resp?.stars === "number") {
         console.log('✅ useLoyalty: Got stars:', resp.stars);
         setStars(resp.stars);
         localStorage.setItem(LS_KEYS.stars, String(resp.stars));
-      } else {
-        console.log('❌ useLoyalty: No stars in response');
       }
       
       setIsLoadingCard(false);
-      return resp?.card || null;
     };
 
-    (async () => {
-      const firstCard = await tryOnce();
-      if (firstCard && /^\d{4}$/.test(String(firstCard))) {
-        return; // Успешно получили карту с первого раза
-      }
-
-      for (let i = 0; i < 3; i++) {
-        if (aborted) break;
-        if (currentCard && /^\d{4}$/.test(currentCard)) break;
-        await new Promise((r) => setTimeout(r, 1000));
-        const card = await tryOnce();
-        if (card && /^\d{4}$/.test(String(card))) {
-          break;
-        }
-      }
-    })();
+    if (currentTgId && !aborted) {
+      tryRegister();
+    }
 
     return () => {
       aborted = true;
     };
-  }, [currentTgId, api]);
+  }, [currentTgId]); // Убрал api из dependencies чтобы избежать лишних перезапусков
 
   // Пуллинг card/stars каждые 15s
   useEffect(() => {
