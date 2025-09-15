@@ -21,7 +21,6 @@ import {
   CartSheet,
   AdsCarousel,
   BottomBar,
-  OrderConfirmationModal,
 } from "./components";
 
 import { TestRunner } from "./components/DevTools";
@@ -268,12 +267,13 @@ export default function App() {
 
       {debugVisible && <TestRunner />}
 
-      <OrderConfirmationModal
+      {/* TODO: OrderConfirmationModal component is missing */}
+      {/* <OrderConfirmationModal
         isOpen={showOrderConfirmation}
         lang={lang}
         onClose={() => setShowOrderConfirmation(false)}
         starsEarned={starsEarned}
-      />
+      /> */}
     </div>
   );
 }

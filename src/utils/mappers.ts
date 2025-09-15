@@ -27,7 +27,7 @@ export const mapMenu = (rows: any[]): MenuItem[] =>
     const title_ru = String(pickFrom(r, ["Russian"], title_en));
     const title_sr = String(pickFrom(r, ["Serbian"], title_en));
     const volume = String(pickFrom(r, ["Volume"], ""));
-    const price = toNumber(pickFrom(r, ["Price (RSD)", "Price", "RSD"], 0), 0);
+    const price = toNumber(String(pickFrom(r, ["Price (RSD)", "Price", "RSD"], "0")), 0);
     const comp = String(pickFrom(r, ["Ingredients"], ""));
     const image = driveToDirect(
       String(pickFrom(r, ["images", "image", "Image"], "")),

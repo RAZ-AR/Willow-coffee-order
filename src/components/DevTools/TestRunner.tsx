@@ -115,12 +115,14 @@ export const TestRunner: React.FC = () => {
     // Тест 6: Order Submission
     await runTest('6. Order Submission', async () => {
       const testOrder = {
-        items: [{ id: 'test', name: 'Test Item', price: 100, quantity: 1 }],
-        totalAmount: 100,
-        phone: '+1234567890',
-        address: 'Test Address'
+        card: loyalty.cardNumber,
+        total: 100,
+        when: "now" as const,
+        table: 1,
+        payment: "cash" as const,
+        items: [{ id: 'test', title: 'Test Item', unit_price: 100, qty: 1 }]
       };
-      
+
       const response = await api.submitOrder(testOrder);
       if (!response) throw new Error('Заказ не отправился');
     });
