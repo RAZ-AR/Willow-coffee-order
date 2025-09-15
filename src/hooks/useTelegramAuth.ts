@@ -55,15 +55,33 @@ export const useTelegramAuth = (): TelegramAuthResult => {
 
     const hasRealTgData = (!!realTg && (!!realTg.initData || !!realTg.initDataUnsafe?.user?.id)) || hasUrlParams || (forceMode && isTelegramEnv) || isTelegramEnv;
 
-    // УПРОЩЕННАЯ ЛОГИКА: всегда используем единый ID для стабильности
-    let userId: string | number = '128136200'; // твой реальный Telegram ID
-    
-    // Попробуем получить реальный ID из Telegram API
+    // Определяем уникальный ID пользователя
+    let userId: string | number;
+
+    // Сначала пробуем получить реальный ID из Telegram API
     if (realTg?.initDataUnsafe?.user?.id) {
       userId = realTg.initDataUnsafe.user.id;
       console.log('✅ Got real Telegram user ID:', userId);
+    } else if (hasUrlParams && tgWebAppData) {
+      // Попробуем извлечь ID из URL параметров
+      try {
+        const params = new URLSearchParams(tgWebAppData);
+        const user = JSON.parse(params.get('user') || '{}');
+        if (user.id) {
+          userId = user.id;
+          console.log('✅ Got user ID from URL params:', userId);
+        } else {
+          userId = generateTestUserId();
+          console.log('🔄 Generated test user ID:', userId);
+        }
+      } catch (e) {
+        userId = generateTestUserId();
+        console.log('🔄 Generated test user ID (URL parse failed):', userId);
+      }
     } else {
-      console.log('🔄 Using hardcoded user ID for stability:', userId);
+      // В dev режиме или для тестирования генерируем уникальный ID
+      userId = generateTestUserId();
+      console.log('🔄 Generated unique test user ID:', userId);
     }
 
     console.log('🔍 Telegram detection:', {

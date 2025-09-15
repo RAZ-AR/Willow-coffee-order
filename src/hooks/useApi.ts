@@ -22,13 +22,11 @@ export const useApi = ({ tg, currentTgId, hasRealTgData, tgWebAppData }: UseApiP
     
     console.log('✅ Proceeding with registration for user:', currentTgId);
     
-    // ВРЕМЕННЫЙ ХАРДКОД для исправления проблемы с user: null
+    // Создаем user объект из currentTgId если его нет
     let user = tg?.initDataUnsafe?.user || null;
     if (!user && currentTgId) {
-      // Если user null, но есть currentTgId - создаем user объект
-      const userId = currentTgId === 'telegram_user' ? '128136200' : currentTgId;
-      user = { id: Number(userId) };
-      console.log('🚨 HARDCODE: Created user object from currentTgId:', user);
+      user = { id: Number(currentTgId) };
+      console.log('✅ Created user object from currentTgId:', user);
     }
 
     const payload = {
@@ -54,11 +52,10 @@ export const useApi = ({ tg, currentTgId, hasRealTgData, tgWebAppData }: UseApiP
       return null;
     }
 
-    // ВРЕМЕННЫЙ ХАРДКОД для исправления проблемы с user: null
+    // Создаем user объект из currentTgId если его нет
     let user = tg?.initDataUnsafe?.user || null;
     if (!user && currentTgId) {
-      const userId = currentTgId === 'telegram_user' ? '128136200' : currentTgId;
-      user = { id: Number(userId) };
+      user = { id: Number(currentTgId) };
     }
 
     try {
@@ -80,11 +77,10 @@ export const useApi = ({ tg, currentTgId, hasRealTgData, tgWebAppData }: UseApiP
       return null;
     }
 
-    // ВРЕМЕННЫЙ ХАРДКОД для исправления проблемы с user: null
+    // Создаем user объект из currentTgId если его нет
     let user = tg?.initDataUnsafe?.user || null;
     if (!user && currentTgId) {
-      const userId = currentTgId === 'telegram_user' ? '128136200' : currentTgId;
-      user = { id: Number(userId) };
+      user = { id: Number(currentTgId) };
     }
 
     const payload = {

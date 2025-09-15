@@ -11,13 +11,11 @@ export const useApi = ({ tg, currentTgId, hasRealTgData, tgWebAppData }) => {
             return null;
         }
         console.log('✅ Proceeding with registration for user:', currentTgId);
-        // ВРЕМЕННЫЙ ХАРДКОД для исправления проблемы с user: null
+        // Создаем user объект из currentTgId если его нет
         let user = tg?.initDataUnsafe?.user || null;
         if (!user && currentTgId) {
-            // Если user null, но есть currentTgId - создаем user объект
-            const userId = currentTgId === 'telegram_user' ? '128136200' : currentTgId;
-            user = { id: Number(userId) };
-            console.log('🚨 HARDCODE: Created user object from currentTgId:', user);
+            user = { id: Number(currentTgId) };
+            console.log('✅ Created user object from currentTgId:', user);
         }
         const payload = {
             action: "register",
@@ -39,11 +37,10 @@ export const useApi = ({ tg, currentTgId, hasRealTgData, tgWebAppData }) => {
         if (!BACKEND_URL || !currentTgId) {
             return null;
         }
-        // ВРЕМЕННЫЙ ХАРДКОД для исправления проблемы с user: null
+        // Создаем user объект из currentTgId если его нет
         let user = tg?.initDataUnsafe?.user || null;
         if (!user && currentTgId) {
-            const userId = currentTgId === 'telegram_user' ? '128136200' : currentTgId;
-            user = { id: Number(userId) };
+            user = { id: Number(currentTgId) };
         }
         try {
             const resp = await postJSON(BACKEND_URL, {
@@ -63,11 +60,10 @@ export const useApi = ({ tg, currentTgId, hasRealTgData, tgWebAppData }) => {
             console.log('❌ Submit order blocked - missing BACKEND_URL or currentTgId:', { BACKEND_URL: !!BACKEND_URL, currentTgId });
             return null;
         }
-        // ВРЕМЕННЫЙ ХАРДКОД для исправления проблемы с user: null
+        // Создаем user объект из currentTgId если его нет
         let user = tg?.initDataUnsafe?.user || null;
         if (!user && currentTgId) {
-            const userId = currentTgId === 'telegram_user' ? '128136200' : currentTgId;
-            user = { id: Number(userId) };
+            user = { id: Number(currentTgId) };
         }
         const payload = {
             ...orderData,

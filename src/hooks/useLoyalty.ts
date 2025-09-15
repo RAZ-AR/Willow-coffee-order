@@ -16,19 +16,14 @@ export const useLoyalty = ({ tg, currentTgId, hasRealTgData, tgWebAppData }: Use
   const [stars, setStars] = useState<number>(0);
   const [isLoadingCard, setIsLoadingCard] = useState<boolean>(true);
 
-  // Принудительная очистка кеша при каждой загрузке компонента
+  // ВРЕМЕННО: Полная очистка кеша при каждой загрузке для отладки
   useEffect(() => {
-    const savedCard = localStorage.getItem(LS_KEYS.card);
-    const savedOwner = localStorage.getItem(LS_KEYS.owner);
-
-    // Если есть сохраненная карта, но нет владельца или владелец неизвестен - очищаем
-    if (savedCard && (!savedOwner || !currentTgId)) {
-      console.log('🧹 Aggressive cache clear - removing orphaned card data');
-      localStorage.removeItem(LS_KEYS.card);
-      localStorage.removeItem(LS_KEYS.stars);
-      localStorage.removeItem(LS_KEYS.owner);
-    }
-  }, [currentTgId]);
+    console.log('🧹 TEMP: Force clearing ALL localStorage for debugging');
+    localStorage.removeItem(LS_KEYS.card);
+    localStorage.removeItem(LS_KEYS.stars);
+    localStorage.removeItem(LS_KEYS.owner);
+    localStorage.removeItem('test_user_id'); // Очищаем и тестовый ID
+  }, []);
   const [lastRegisterResp, setLastRegisterResp] = useState<any>(null);
   const [lastStarsResp, setLastStarsResp] = useState<any>(null);
 
