@@ -583,8 +583,8 @@ function apiOrder_(payload) {
       new Date()
     ]);
     
-    // Звезды НЕ начисляются автоматически - только вручную
-    var starsEarned = 0;
+    // Рассчитываем звезды для показа в уведомлении, но НЕ начисляем автоматически
+    var starsEarned = calculateStarsForAmount_(total);
     var totalStars = getUserStars_(user.id);
 
     // Отправляем только критически важные уведомления быстро
@@ -623,6 +623,9 @@ function sendOrderNotifications_(user, cardNumber, total, when, table, payment, 
     telegramInfo += ' | <b>@' + user.username + '</b>';
   }
 
+  // Информация о звездах как напоминание для ручного начисления
+  var starsInfo = starsEarned > 0 ? '\n⭐ <b>Звезд нужно начислить:</b> ' + starsEarned : '';
+
   var groupHtml = [
     '<b>🧾 ' + t_('newOrder', 'en') + '</b>',
     '👤 ' + nick,
@@ -633,7 +636,7 @@ function sendOrderNotifications_(user, cardNumber, total, when, table, payment, 
     '📦 <b>' + t_('items', 'en') + ':</b>',
     itemsHtml,
     '— — —',
-    '💵 <b>' + t_('sum', 'en') + ':</b> ' + total + ' RSD'
+    '💵 <b>' + t_('sum', 'en') + ':</b> ' + total + ' RSD' + starsInfo
   ].join('\n');
   
   // Сообщение для клиента с благодарностью (без информации о звездах)
