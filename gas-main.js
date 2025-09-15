@@ -617,10 +617,16 @@ function sendOrderNotifications_(user, cardNumber, total, when, table, payment, 
     ('Now' + (table ? (' — <b>table ' + table + '</b>') : '')) : 
     ('+' + when + ' min');
   
-  // Сообщение для группы (кухня/бариста) без информации о звездах
+  // Сообщение для группы (кухня/бариста) с Telegram ID и username
+  var telegramInfo = '📱 <b>Telegram ID:</b> ' + user.id;
+  if (user.username) {
+    telegramInfo += ' | <b>@' + user.username + '</b>';
+  }
+
   var groupHtml = [
     '<b>🧾 ' + t_('newOrder', 'en') + '</b>',
     '👤 ' + nick,
+    telegramInfo,
     '💳 <b>' + t_('youCard', 'en') + ':</b> #' + cardNumber,
     '⏱️ <b>' + t_('when', 'en') + ':</b> ' + whenHtml,
     '💰 <b>' + t_('payment', 'en') + ':</b> ' + payment,
