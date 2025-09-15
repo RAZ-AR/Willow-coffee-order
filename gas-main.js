@@ -203,35 +203,98 @@ function nextCardNumber_() {
 function findCardByTelegramId_(telegramId) {
   var sh = getSheet_('Cards');
   var lastRow = sh.getLastRow();
-  
+
   if (lastRow <= 1) return null;
-  
+
   var data = sh.getRange(2, 1, lastRow - 1, 5).getValues();
-  
+
+  // Ищем ПОСЛЕДНЮЮ (самую новую) карту пользователя
+  var foundCard = null;
   for (var i = 0; i < data.length; i++) {
     if (String(data[i][0]) === String(telegramId)) {
-      return {
-        row: i + 2,
-        telegramId: data[i][0],
-        cardNumber: String(data[i][1]),
-        username: data[i][2],
-        firstName: data[i][3],
-        createdAt: data[i][4]
-      };
+      // Проверяем что номер карты валидный (4 цифры)
+      var cardNum = String(data[i][1]).trim();
+      if (cardNum && cardNum.length === 4 && /^\d{4}$/.test(cardNum)) {
+        foundCard = {
+          row: i + 2,
+          telegramId: data[i][0],
+          cardNumber: cardNum,
+          username: data[i][2],
+          firstName: data[i][3],
+          createdAt: data[i][4]
+        };
+        // Не прерываем цикл - ищем последнюю валидную карту
+      }
     }
   }
-  
-  return null;
+
+  return foundCard;
+}
+
+function cleanupDuplicateCards_(telegramId) {
+  var sh = getSheet_('Cards');
+  var lastRow = sh.getLastRow();
+
+  if (lastRow <= 1) return;
+
+  var data = sh.getRange(2, 1, lastRow - 1, 5).getValues();
+  var cardsForUser = [];
+
+  // Собираем все карты пользователя
+  for (var i = 0; i < data.length; i++) {
+    if (String(data[i][0]) === String(telegramId)) {
+      cardsForUser.push({
+        row: i + 2,
+        cardNumber: String(data[i][1]).trim(),
+        createdAt: data[i][4]
+      });
+    }
+  }
+
+  if (cardsForUser.length <= 1) return; // Нет дубликатов
+
+  // Оставляем только последнюю валидную карту
+  cardsForUser.sort(function(a, b) {
+    return new Date(b.createdAt) - new Date(a.createdAt);
+  });
+
+  var keepCard = null;
+  for (var j = 0; j < cardsForUser.length; j++) {
+    if (cardsForUser[j].cardNumber.length === 4 && /^\d{4}$/.test(cardsForUser[j].cardNumber)) {
+      keepCard = cardsForUser[j];
+      break;
+    }
+  }
+
+  if (!keepCard) return;
+
+  // Удаляем все остальные карты (в обратном порядке, чтобы не сбить индексы)
+  var rowsToDelete = [];
+  for (var k = 0; k < cardsForUser.length; k++) {
+    if (cardsForUser[k].row !== keepCard.row) {
+      rowsToDelete.push(cardsForUser[k].row);
+    }
+  }
+
+  rowsToDelete.sort(function(a, b) { return b - a; }); // Сортируем по убыванию
+
+  for (var r = 0; r < rowsToDelete.length; r++) {
+    sh.deleteRow(rowsToDelete[r]);
+    console.log("🗑️ Deleted duplicate card at row:", rowsToDelete[r]);
+  }
 }
 
 function getOrCreateCardForUser_(tgUser, sendNotification) {
   console.log("🔄 getOrCreateCardForUser_ for:", tgUser);
   ensureHeaders_();
-  
+
   if (!tgUser || !tgUser.id) {
     throw new Error('No telegram user ID provided');
   }
-  
+
+  // Сначала очищаем дубликаты
+  cleanupDuplicateCards_(tgUser.id);
+
   // Ищем существующую карту
   var existingCard = findCardByTelegramId_(tgUser.id);
   
