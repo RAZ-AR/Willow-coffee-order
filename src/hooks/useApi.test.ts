@@ -82,6 +82,7 @@ describe('useApi', () => {
 
       ;(fetch as any).mockResolvedValueOnce({
         ok: true,
+        text: async () => JSON.stringify(mockResponse),
         json: async () => mockResponse
       })
 
@@ -109,6 +110,7 @@ describe('useApi', () => {
 
       ;(fetch as any).mockResolvedValueOnce({
         ok: true,
+        text: async () => JSON.stringify(mockResponse),
         json: async () => mockResponse
       })
 
@@ -138,6 +140,7 @@ describe('useApi', () => {
 
       ;(fetch as any).mockResolvedValueOnce({
         ok: true,
+        text: async () => JSON.stringify(mockResponse),
         json: async () => mockResponse
       })
 
@@ -186,7 +189,8 @@ describe('useApi', () => {
     it('should handle non-ok HTTP responses', async () => {
       ;(fetch as any).mockResolvedValueOnce({
         ok: false,
-        status: 500
+        status: 500,
+        text: async () => 'Server Error'
       })
 
       const { result } = renderHook(() => useApi(defaultProps))
@@ -199,6 +203,7 @@ describe('useApi', () => {
     it('should handle malformed JSON responses', async () => {
       ;(fetch as any).mockResolvedValueOnce({
         ok: true,
+        text: async () => 'Invalid JSON',
         json: async () => {
           throw new Error('Invalid JSON')
         }

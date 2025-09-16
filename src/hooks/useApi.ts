@@ -12,14 +12,23 @@ interface UseApiParams {
 
 export const useApi = ({ tg, currentTgId, hasRealTgData, tgWebAppData }: UseApiParams) => {
   const register = useCallback(async (): Promise<RegisterResponse | null> => {
-    if (!BACKEND_URL) return null;
-    
-    // Регистрируем если есть currentTgId (стабильный подход)
     if (!currentTgId) {
       console.log('❌ No currentTgId - skipping registration');
       return null;
     }
-    
+
+    // Тестовый режим - возвращаем мок данные
+    if (currentTgId === "0000") {
+      console.log('🧪 Test mode - returning mock registration data');
+      return {
+        ok: true,
+        card: "0000",
+        stars: 0
+      };
+    }
+
+    if (!BACKEND_URL) return null;
+
     console.log('✅ Proceeding with registration for user:', currentTgId);
     
     // Создаем user объект из currentTgId если его нет
@@ -48,7 +57,20 @@ export const useApi = ({ tg, currentTgId, hasRealTgData, tgWebAppData }: UseApiP
   }, [BACKEND_URL, currentTgId, tg, tgWebAppData]);
 
   const getStars = useCallback(async (): Promise<StarsResponse | null> => {
-    if (!BACKEND_URL || !currentTgId) {
+    if (!currentTgId) {
+      return null;
+    }
+
+    // Тестовый режим - возвращаем мок данные
+    if (currentTgId === "0000") {
+      console.log('🧪 Test mode - returning mock stars data');
+      return {
+        card: "0000",
+        stars: 0
+      };
+    }
+
+    if (!BACKEND_URL) {
       return null;
     }
 
@@ -60,20 +82,38 @@ export const useApi = ({ tg, currentTgId, hasRealTgData, tgWebAppData }: UseApiP
 
     try {
       const resp = await postJSON<StarsResponse>(BACKEND_URL, {
-        action: "stars",
+        action: "get_stars",
         initData: tg?.initData || tgWebAppData || null,
         user: user,
       });
       return resp;
     } catch (error) {
       console.error('Get stars error:', error);
-      return { error: "network_or_cors" } as any;
+      return null;
     }
   }, [BACKEND_URL, currentTgId, tg, tgWebAppData]);
 
   const submitOrder = useCallback(async (orderData: Omit<OrderRequest, 'action' | 'initData' | 'user'>): Promise<OrderResponse | null> => {
-    if (!BACKEND_URL || !currentTgId) {
-      console.log('❌ Submit order blocked - missing BACKEND_URL or currentTgId:', { BACKEND_URL: !!BACKEND_URL, currentTgId });
+    if (!currentTgId) {
+      console.log('❌ Submit order blocked - missing currentTgId');
+      return null;
+    }
+
+    // Тестовый режим - возвращаем мок данные
+    if (currentTgId === "0000") {
+      console.log('🧪 Test mode - returning mock order data');
+      const starsEarned = Math.floor((orderData.total || 0) / 100);
+      return {
+        ok: true,
+        order_id: `TEST_ORD_${Date.now()}`,
+        card: "0000",
+        stars: 0,
+        stars_earned: starsEarned
+      };
+    }
+
+    if (!BACKEND_URL) {
+      console.log('❌ Submit order blocked - missing BACKEND_URL');
       return null;
     }
 
@@ -84,12 +124,12 @@ export const useApi = ({ tg, currentTgId, hasRealTgData, tgWebAppData }: UseApiP
     }
 
     const payload = {
-      ...orderData,
-      action: "order",
+      order: orderData,
+      action: "submit_order",
       initData: tg?.initData || tgWebAppData || null,
       user: user,
     };
-    
+
     console.log('📦 Submitting order:', payload);
 
     try {
