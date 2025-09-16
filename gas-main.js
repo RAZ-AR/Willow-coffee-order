@@ -658,19 +658,22 @@ function apiOrder_(payload) {
       new Date()
     ]);
     
-    // Рассчитываем звезды для показа в уведомлении, но НЕ начисляем автоматически
+    // Автоматически начисляем звезды за заказ
     var starsEarned = calculateStarsForAmount_(total);
+    if (starsEarned > 0) {
+      addStarsLog_(cardNumber, starsEarned, 'order_' + orderId);
+    }
     var totalStars = getUserStars_(user.id);
 
     // Отправляем только критически важные уведомления быстро
-    sendOrderNotifications_(user, cardNumber, total, when, table, payment, items, starsEarned, totalStars);
+    sendOrderNotifications_(user, cardNumber, total, when, table, payment, items, starsEarned, totalStars, orderId);
     
     return {
       ok: true,
       order_id: orderId,
       card: cardNumber,
       stars: totalStars,
-      stars_earned: 0
+      stars_earned: starsEarned
     };
   } catch (error) {
     console.log("❌ Order error:", error);
@@ -678,7 +681,7 @@ function apiOrder_(payload) {
   }
 }
 
-function sendOrderNotifications_(user, cardNumber, total, when, table, payment, items, starsEarned, totalStars) {
+function sendOrderNotifications_(user, cardNumber, total, when, table, payment, items, starsEarned, totalStars, orderId) {
   var nick = user.username ? '@' + user.username : (user.first_name || String(user.id));
   
   var itemsHtml = (items || []).map(function(item) {
@@ -698,8 +701,10 @@ function sendOrderNotifications_(user, cardNumber, total, when, table, payment, 
     telegramInfo += ' | <b>@' + user.username + '</b>';
   }
 
-  // Информация о звездах как напоминание для ручного начисления
-  var starsInfo = starsEarned > 0 ? '\n⭐ <b>Звезд нужно начислить:</b> ' + starsEarned : '';
+  // Информация о звездах
+  var starsInfo = starsEarned > 0 ?
+    '\n⭐ <b>Начислено звезд:</b> +' + starsEarned + ' (всего у клиента: ' + totalStars + ')' :
+    '\n⭐ <b>Звезды:</b> не начислены (всего у клиента: ' + totalStars + ')';
 
   var groupHtml = [
     '<b>🧾 ' + t_('newOrder', 'en') + '</b>',
@@ -714,18 +719,20 @@ function sendOrderNotifications_(user, cardNumber, total, when, table, payment, 
     '💵 <b>' + t_('sum', 'en') + ':</b> ' + total + ' RSD' + starsInfo
   ].join('\n');
   
-  // Сообщение для клиента с благодарностью (без информации о звездах)
+  // Сообщение для клиента с информацией о звездах
   var lang = langFromUser_(user);
-  var thanksMessage = '\n\n🎉 <b>Спасибо за заказ!</b>';
-    
+  var starsMessage = starsEarned > 0 ?
+    '\n⭐ <b>Вы получили:</b> +' + starsEarned + ' звезд\n💳 <b>Карта:</b> #' + cardNumber + ' (всего звезд: ' + totalStars + ')' :
+    '\n💳 <b>Карта:</b> #' + cardNumber + ' (всего звезд: ' + totalStars + ')';
+
   var clientHtml = [
-    '<b>' + t_('orderReceived', lang) + '</b>',
-    '👤 ' + nick,
-    '💳 <b>' + t_('youCard', lang) + ':</b> #' + cardNumber,
-    '⏱️ ' + t_('when', lang) + ': ' + whenHtml,
-    '📦 ' + t_('items', lang) + ':',
-    itemsHtml,
-    '💵 ' + t_('sum', lang) + ': ' + total + ' RSD' + thanksMessage
+    '<b>✅ ' + t_('orderReceived', lang) + '</b>',
+    '',
+    '📋 <b>Заказ:</b> #' + orderId,
+    '💰 <b>Сумма:</b> ' + total + ' RSD' + starsMessage,
+    '',
+    '<b>Позиции:</b>',
+    itemsHtml
   ].join('\n');
   
   // Отправляем сообщения
