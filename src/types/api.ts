@@ -19,8 +19,10 @@ export interface StarsResponse {
 
 export interface OrderResponse {
   ok: boolean;
-  stars?: number;
-  stars_earned?: number;
+  order_id: string;
+  card: string;
+  stars: number;
+  stars_earned: number;
 }
 
 export interface OrderRequest {

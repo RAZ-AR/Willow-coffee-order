@@ -65,6 +65,7 @@ export const useApi = ({ tg, currentTgId, hasRealTgData, tgWebAppData }: UseApiP
     if (currentTgId === "0000") {
       console.log('🧪 Test mode - returning mock stars data');
       return {
+        ok: true,
         card: "0000",
         stars: 0
       };

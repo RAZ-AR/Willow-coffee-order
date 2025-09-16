@@ -9,25 +9,17 @@
   <body>
     <div id="root"></div>
     
-    <!-- ПРИНУДИТЕЛЬНОЕ ИСПРАВЛЕНИЕ для деплоя -->
+    <!-- Telegram WebApp инициализация -->
     <script>
-      // Если нет Telegram данных - создаем их принудительно
-      if (!window.Telegram) {
-        console.log('🚨 FORCE: Creating Telegram WebApp object');
-        window.Telegram = {
-          WebApp: {
-            initDataUnsafe: {
-              user: { id: 128136200 }
-            },
-            initData: null,
-            ready: () => console.log('🔧 Telegram WebApp ready (forced)')
-          }
-        };
+      console.log('🔧 Willow: Initializing Telegram WebApp support');
+
+      // Проверяем наличие Telegram WebApp API
+      if (!window.Telegram || !window.Telegram.WebApp) {
+        console.log('⚠️ No Telegram WebApp detected - running in dev mode');
+      } else {
+        console.log('✅ Telegram WebApp detected');
+        window.Telegram.WebApp.ready();
       }
-      
-      // Глобальный флаг для принудительного использования
-      window.WILLOW_FORCE_USER_ID = '128136200';
-      console.log('🔧 Willow: Force user ID set to', window.WILLOW_FORCE_USER_ID);
     </script>
     
     <script type="module" src="/src/main.tsx"></script>
