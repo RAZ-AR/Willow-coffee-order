@@ -64,7 +64,7 @@ export const useApi = ({ tg, currentTgId, hasRealTgData, tgWebAppData }) => {
         }
         try {
             const resp = await postJSON(BACKEND_URL, {
-                action: "get_stars",
+                action: "stars",
                 initData: tg?.initData || tgWebAppData || null,
                 user: user,
             });
@@ -102,10 +102,10 @@ export const useApi = ({ tg, currentTgId, hasRealTgData, tgWebAppData }) => {
             user = { id: Number(currentTgId) };
         }
         const payload = {
-            order: orderData,
-            action: "submit_order",
+            action: "order",
             initData: tg?.initData || tgWebAppData || null,
             user: user,
+            ...orderData,
         };
         console.log('📦 Submitting order:', payload);
         try {
