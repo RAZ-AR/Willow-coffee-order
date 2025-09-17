@@ -668,7 +668,7 @@ function apiOrder_(payload) {
     // Автоматически начисляем звезды за заказ
     var starsEarned = calculateStarsForAmount_(total);
     if (starsEarned > 0) {
-      addStarsLog_(cardNumber, starsEarned, 'order_' + orderId);
+      addStarsToCard_(cardNumber, starsEarned, 'order_' + orderId);
     }
     var totalStars = getUserStars_(user.id);
 
