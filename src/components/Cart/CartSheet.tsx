@@ -15,7 +15,8 @@ interface CartSheetProps {
     when: "now" | "10" | "20",
     table: number | null,
     payment: "cash" | "card" | "stars",
-  ) => void | Promise<void>;
+  ) => boolean | Promise<boolean>;
+  errorMessage?: string | null;
 }
 
 export const CartSheet: React.FC<CartSheetProps> = ({
@@ -27,6 +28,7 @@ export const CartSheet: React.FC<CartSheetProps> = ({
   remove,
   onClose,
   onPaid,
+  errorMessage,
 }) => {
   const cartLines = Object.entries(cart)
     .filter(([_, qty]) => (qty || 0) > 0)
@@ -38,8 +40,10 @@ export const CartSheet: React.FC<CartSheetProps> = ({
     table: number | null,
     payment: "cash" | "card" | "stars"
   ) => {
-    await onPaid(when, table, payment);
-    onClose();
+    const success = await onPaid(when, table, payment);
+    if (success) {
+      onClose();
+    }
   };
 
   return (
@@ -64,6 +68,14 @@ export const CartSheet: React.FC<CartSheetProps> = ({
             ✕
           </button>
         </div>
+
+        {errorMessage && (
+          <div className="px-4 pt-3" role="alert">
+            <div className="rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+              {errorMessage}
+            </div>
+          </div>
+        )}
 
         {/* Cart Items */}
         <div className="max-h-[60vh] overflow-y-auto px-4 py-3 divide-y">

@@ -61,6 +61,7 @@ export default function App() {
   const [debugTapCount, setDebugTapCount] = useState<number>(0);
   const [showOrderConfirmation, setShowOrderConfirmation] = useState<boolean>(false);
   const [starsEarned, setStarsEarned] = useState<number>(0);
+  const [orderError, setOrderError] = useState<string | null>(null);
 
   // Debug visibility
   const [debugVisible, setDebugVisible] = useState<boolean>(() => {
@@ -98,19 +99,36 @@ export default function App() {
     });
   };
 
+  const buildOrderErrorMessage = (details?: string) => {
+    const baseMessage =
+      lang === "ru"
+        ? "Не удалось отправить заказ. Попробуйте ещё раз."
+        : lang === "sr"
+          ? "Slanje porudžbine nije uspelo. Pokušajte ponovo."
+          : "We couldn't submit your order. Please try again.";
+
+    if (details) {
+      return `${baseMessage} ${details}`;
+    }
+
+    return baseMessage;
+  };
+
   const handleOrderSubmit = async (
     when: "now" | "10" | "20",
     table: number | null,
     payment: "cash" | "card" | "stars"
-  ) => {
+  ): Promise<boolean> => {
     console.log('📦 handleOrderSubmit called with:', { when, table, payment, currentTgId });
-    
+
     if (!currentTgId) {
       console.log('❌ handleOrderSubmit blocked - no currentTgId');
-      return;
+      setOrderError(buildOrderErrorMessage());
+      return false;
     }
 
     try {
+      setOrderError(null);
       const orderLines = Object.entries(cart.cart)
         .filter(([_, qty]) => (qty || 0) > 0)
         .map(([id, qty]) => {
@@ -137,20 +155,32 @@ export default function App() {
 
       console.log('📦 Order submit response:', resp);
 
-      if (resp && typeof resp.stars === "number") {
+      if (!resp?.ok) {
+        console.warn('❌ Order submit failed:', resp);
+        const detail = resp?.error ? `(${resp.error})` : undefined;
+        setOrderError(buildOrderErrorMessage(detail));
+        return false;
+      }
+
+      if (typeof resp.stars === "number") {
         loyalty.updateStars(resp.stars);
       }
 
       cart.clear();
       setStarsEarned(resp?.stars_earned || 0);
       setShowOrderConfirmation(true);
+      return true;
     } catch (error) {
       console.error("Order error:", error);
-      // Still clear cart and show success for UX
-      cart.clear();
-      setStarsEarned(0);
-      setShowOrderConfirmation(true);
+      const detail = error instanceof Error ? `(${error.message})` : undefined;
+      setOrderError(buildOrderErrorMessage(detail));
+      return false;
     }
+  };
+
+  const handleCloseCart = () => {
+    setShowCart(false);
+    setOrderError(null);
   };
 
   // Show loading state
@@ -220,8 +250,9 @@ export default function App() {
           total={cart.total}
           add={cart.add}
           remove={cart.remove}
-          onClose={() => setShowCart(false)}
+          onClose={handleCloseCart}
           onPaid={handleOrderSubmit}
+          errorMessage={orderError}
         />
       )}
 
