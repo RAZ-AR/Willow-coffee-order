@@ -409,13 +409,18 @@ function getUserStars_(telegramId) {
 
 /** ===== ИСПРАВЛЕННЫЕ TELEGRAM ФУНКЦИИ ===== */
 function tgSendHTML_(chatId, html) {
+  console.log("📤 tgSendHTML_ called with chatId:", chatId, "html:", html);
+
   var token = _prop('TELEGRAM_TOKEN', '');
+  console.log("🔑 Token available:", token ? "YES (" + token.substring(0, 10) + "...)" : "NO");
+
   if (!token || !chatId) {
     console.log("❌ No token or chatId for sending message");
     return { ok: false, reason: 'no token/chatId' };
   }
-  
+
   try {
+    console.log("📤 Sending message to Telegram API...");
     var res = UrlFetchApp.fetch('https://api.telegram.org/bot' + token + '/sendMessage', {
       method: 'post',
       payload: {
@@ -428,14 +433,16 @@ function tgSendHTML_(chatId, html) {
     });
     
     var responseText = res.getContentText();
-    
+    console.log("📥 Telegram API response:", responseText);
+
     var js = {};
-    try { 
-      js = JSON.parse(responseText); 
+    try {
+      js = JSON.parse(responseText);
+      console.log("📊 Parsed response:", JSON.stringify(js, null, 2));
     } catch(e) {
       console.log("❌ Failed to parse Telegram response:", e);
     }
-    
+
     if (js.ok) {
       console.log("✅ Message sent successfully");
       return { ok: true };
@@ -562,7 +569,7 @@ function _resolveUserFromPayload_(payload) {
 
 function apiRegister_(payload) {
   console.log("🚀 apiRegister_ called");
-  console.log("🔥 VERSION CHECK: gas-main.js updated at 15.09.2025 17:45");
+  console.log("🔥 VERSION CHECK: gas-main.js updated at 16.09.2025 19:30 - WEBHOOK DEBUG");
   console.log("📥 Received payload:", JSON.stringify(payload, null, 2));
 
   ensureHeaders_();
@@ -747,11 +754,16 @@ function sendOrderNotifications_(user, cardNumber, total, when, table, payment, 
 /** ===== ОБРАБОТКА TELEGRAM WEBHOOK ===== */
 function handleStart_(update) {
   console.log("🎯 handleStart_ called");
+  console.log("🔥 HANDLE START DEBUG: Function entry point reached!");
+  console.log("📥 Update object:", JSON.stringify(update, null, 2));
   ensureHeaders_();
-  
+
   var user = update.message && update.message.from;
+  console.log("👤 Extracted user:", JSON.stringify(user, null, 2));
+
   if (!user || !user.id) {
     console.log("❌ No user in start command");
+    console.log("❌ User validation failed - user:", user);
     return;
   }
   
@@ -852,9 +864,11 @@ function adjustStarsFromMessage_(text, chatId) {
 /** ===== ОСНОВНЫЕ ENTRY POINTS ===== */
 function doPost(e) {
   console.log("📥 doPost called");
-  
+  console.log("🔥 WEBHOOK DEBUG: doPost entry point reached!");
+
   var body = e && e.postData && e.postData.contents ? e.postData.contents : '{}';
   console.log("📄 Request body:", body);
+  console.log("📄 Full request object:", JSON.stringify(e, null, 2));
   
   var data = {};
   try { 
@@ -884,10 +898,13 @@ function doPost(e) {
   if (data && data.message) {
     var text = data.message.text || '';
     var chatId = data.message.chat && data.message.chat.id;
-    
+
     console.log("💬 Processing Telegram message:", text, "from chat:", chatId);
-    
+    console.log("🔥 TELEGRAM WEBHOOK DETECTED!");
+    console.log("📱 Message data:", JSON.stringify(data.message, null, 2));
+
     if (/^\/start/.test(text)) {
+      console.log("🎯 /start command detected!");
       handleStart_(data);
       return simpleOk();
     }
@@ -918,14 +935,48 @@ function doPost(e) {
 
 function doGet(e) {
   console.log("📥 doGet called");
-  
+  console.log("🔥 GET REQUEST DEBUG - GAS is working!");
+  console.log("📄 Query parameters:", e.parameter);
+
+  // Тестирование команды /start
+  if (e && e.parameter && e.parameter.test === 'start') {
+    try {
+      var testUser = {
+        id: 999999999,
+        first_name: "Test User",
+        username: "testuser"
+      };
+
+      console.log("🧪 Testing /start command with user:", JSON.stringify(testUser));
+
+      var testUpdate = {
+        message: {
+          from: testUser,
+          text: "/start",
+          chat: { id: testUser.id }
+        }
+      };
+
+      handleStart_(testUpdate);
+
+      return json({
+        ok: true,
+        message: "Test /start command executed",
+        test_user: testUser
+      });
+    } catch (error) {
+      console.log("❌ Test /start error:", error);
+      return json({ ok: false, error: String(error) });
+    }
+  }
+
   // Тестирование генерации карт
   if (e && e.parameter && e.parameter.test === 'card') {
     try {
       var testCard = nextCardNumber_();
-      return json({ 
-        ok: true, 
-        test_card: testCard, 
+      return json({
+        ok: true,
+        test_card: testCard,
         length: testCard.length,
         is_valid: testCard.length === 4 && !isNaN(testCard)
       });
