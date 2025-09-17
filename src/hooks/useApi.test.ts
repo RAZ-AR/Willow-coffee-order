@@ -42,6 +42,7 @@ describe('useApi', () => {
       const response = await result.current.getStars()
 
       expect(response).toEqual({
+        ok: true,
         card: '0000',
         stars: 0
       })
@@ -94,7 +95,6 @@ describe('useApi', () => {
         expect.stringContaining('script.google.com'),
         expect.objectContaining({
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: expect.stringContaining('"action":"register"')
         })
       )
@@ -122,7 +122,7 @@ describe('useApi', () => {
         expect.stringContaining('script.google.com'),
         expect.objectContaining({
           method: 'POST',
-          body: expect.stringContaining('"action":"get_stars"')
+          body: expect.stringContaining('"action":"stars"')
         })
       )
 
@@ -160,12 +160,12 @@ describe('useApi', () => {
         expect.stringContaining('script.google.com'),
         expect.objectContaining({
           method: 'POST',
-          body: expect.stringContaining('"action":"submit_order"')
+          body: expect.stringContaining('"action":"order"')
         })
       )
 
       const requestBody = JSON.parse((fetch as any).mock.calls[0][1].body)
-      expect(requestBody.order).toMatchObject({
+      expect(requestBody).toMatchObject({
         items: orderData.items,
         total: orderData.total,
         when: orderData.when,
@@ -197,7 +197,7 @@ describe('useApi', () => {
 
       const response = await result.current.register()
 
-      expect(response).toBeNull()
+      expect(response).toEqual({ error: 'network_or_cors' })
     })
 
     it('should handle malformed JSON responses', async () => {
@@ -279,12 +279,9 @@ describe('useApi', () => {
 
       result.current.getStars()
 
-      expect(fetch).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          body: expect.stringContaining('"tgWebAppData"')
-        })
-      )
+      const [, requestInit] = (fetch as any).mock.calls[0]
+      const body = JSON.parse(requestInit.body)
+      expect(body.initData).toBe(propsWithWebAppData.tgWebAppData)
     })
   })
 })

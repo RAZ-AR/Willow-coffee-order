@@ -142,7 +142,7 @@ describe('Order Flow Integration Tests', () => {
         expect.stringContaining('script.google.com'),
         expect.objectContaining({
           method: 'POST',
-          body: expect.stringContaining('"action":"get_stars"')
+          body: expect.stringContaining('"action":"stars"')
         })
       )
 
@@ -172,14 +172,14 @@ describe('Order Flow Integration Tests', () => {
 
       // Verify order API was called with correct data
       const orderCall = (fetch as any).mock.calls.find((call: any) =>
-        call[1].body.includes('"action":"submit_order"')
+        call[1].body.includes('"action":"order"')
       )
       expect(orderCall).toBeDefined()
 
       const requestBody = JSON.parse(orderCall[1].body)
       expect(requestBody.user.id).toBe(123456789)
-      expect(requestBody.order.total).toBe(500)
-      expect(requestBody.order.items[0].title).toBe('Espresso')
+      expect(requestBody.total).toBe(500)
+      expect(requestBody.items[0].title).toBe('Espresso')
     })
   })
 

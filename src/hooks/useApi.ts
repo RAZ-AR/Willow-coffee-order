@@ -83,7 +83,7 @@ export const useApi = ({ tg, currentTgId, hasRealTgData, tgWebAppData }: UseApiP
 
     try {
       const resp = await postJSON<StarsResponse>(BACKEND_URL, {
-        action: "get_stars",
+        action: "stars",
         initData: tg?.initData || tgWebAppData || null,
         user: user,
       });
@@ -125,10 +125,10 @@ export const useApi = ({ tg, currentTgId, hasRealTgData, tgWebAppData }: UseApiP
     }
 
     const payload = {
-      order: orderData,
-      action: "submit_order",
+      action: "order",
       initData: tg?.initData || tgWebAppData || null,
       user: user,
+      ...orderData,
     };
 
     console.log('📦 Submitting order:', payload);
