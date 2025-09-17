@@ -42,6 +42,7 @@ describe('useApi', () => {
       const response = await result.current.getStars()
 
       expect(response).toEqual({
+        ok: true,
         card: '0000',
         stars: 0
       })
@@ -52,10 +53,11 @@ describe('useApi', () => {
       const { result } = renderHook(() => useApi(testProps))
 
       const mockOrder = {
+        card: '0000',
         items: [{ id: '1', title: 'Test Coffee', qty: 1, unit_price: 100 }],
         total: 100,
         when: 'now',
-        table: '5',
+        table: 5,
         payment: 'cash'
       }
 
@@ -94,7 +96,7 @@ describe('useApi', () => {
         expect.stringContaining('script.google.com'),
         expect.objectContaining({
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: expect.objectContaining({ 'Content-Type': expect.stringContaining('text/plain') }),
           body: expect.stringContaining('"action":"register"')
         })
       )
@@ -104,6 +106,7 @@ describe('useApi', () => {
 
     it('should call getStars API with correct user data', async () => {
       const mockResponse = {
+        ok: true,
         card: '1234',
         stars: 10
       }
@@ -122,7 +125,7 @@ describe('useApi', () => {
         expect.stringContaining('script.google.com'),
         expect.objectContaining({
           method: 'POST',
-          body: expect.stringContaining('"action":"get_stars"')
+          body: expect.stringContaining('"action":"stars"')
         })
       )
 
@@ -147,10 +150,11 @@ describe('useApi', () => {
       const { result } = renderHook(() => useApi(defaultProps))
 
       const orderData = {
+        card: '1234',
         items: [{ id: '1', title: 'Espresso', qty: 2, unit_price: 150 }],
         total: 300,
         when: 'now',
-        table: '5',
+        table: 5,
         payment: 'cash'
       }
 
@@ -160,12 +164,14 @@ describe('useApi', () => {
         expect.stringContaining('script.google.com'),
         expect.objectContaining({
           method: 'POST',
-          body: expect.stringContaining('"action":"submit_order"')
+          body: expect.stringContaining('"action":"order"')
         })
       )
 
       const requestBody = JSON.parse((fetch as any).mock.calls[0][1].body)
-      expect(requestBody.order).toMatchObject({
+      expect(requestBody).toMatchObject({
+        action: 'order',
+        card: orderData.card,
         items: orderData.items,
         total: orderData.total,
         when: orderData.when,
@@ -279,12 +285,8 @@ describe('useApi', () => {
 
       result.current.getStars()
 
-      expect(fetch).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          body: expect.stringContaining('"tgWebAppData"')
-        })
-      )
+      const requestBody = JSON.parse((fetch as any).mock.calls[0][1].body)
+      expect(requestBody.initData).toBe(propsWithWebAppData.tgWebAppData)
     })
   })
 })
