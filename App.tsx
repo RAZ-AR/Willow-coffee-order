@@ -102,11 +102,32 @@ export default function App() {
     payment: "cash" | "card" | "stars"
   ) => {
     console.log('📦 handleOrderSubmit called with:', { when, table, payment, currentTgId });
-    
+
     if (!currentTgId) {
       console.log('❌ handleOrderSubmit blocked - no currentTgId');
       return;
     }
+
+    const successMessage =
+      lang === "ru"
+        ? "Спасибо! Заказ принят."
+        : lang === "sr"
+          ? "Hvala! Porudžbina je primljena."
+          : "Thanks! Order received.";
+
+    const submissionErrorMessage =
+      lang === "ru"
+        ? "Не удалось отправить заказ. Проверьте соединение и попробуйте ещё раз."
+        : lang === "sr"
+          ? "Nije uspelo slanje porudžbine. Pokušajte ponovo."
+          : "Failed to submit order. Please check connection and try again.";
+
+    const unexpectedErrorMessage =
+      lang === "ru"
+        ? "Произошла ошибка при отправке заказа. Попробуйте ещё раз."
+        : lang === "sr"
+          ? "Došlo je do greške pri slanju porudžbine. Pokušajte ponovo."
+          : "Something went wrong while submitting the order. Please try again.";
 
     try {
       const orderLines = Object.entries(cart.cart)
@@ -123,7 +144,7 @@ export default function App() {
 
       console.log('📦 Calling submitOrder with orderLines:', orderLines);
       console.log('📦 Order details:', { card: loyalty.cardNumber, total: cart.total, when, table, payment });
-      
+
       const resp = await api.submitOrder({
         card: loyalty.cardNumber || null,
         total: cart.total,
@@ -134,30 +155,21 @@ export default function App() {
       });
 
       console.log('📦 Order submit response:', resp);
+      if (!resp || !resp.ok) {
+        console.warn('❌ Order submission failed:', resp);
+        alert(submissionErrorMessage);
+        return;
+      }
 
       if (resp && typeof resp.stars === "number") {
         loyalty.updateStars(resp.stars);
       }
-      
+
       cart.clear();
-      alert(
-        lang === "ru"
-          ? "Спасибо! Заказ принят."
-          : lang === "sr"
-            ? "Hvala! Porudžbina je primljena."
-            : "Thanks! Order received.",
-      );
+      alert(successMessage);
     } catch (error) {
       console.error("Order error:", error);
-      // Still clear cart and show success for UX
-      cart.clear();
-      alert(
-        lang === "ru"
-          ? "Спасибо! Заказ принят."
-          : lang === "sr"
-            ? "Hvala! Porudžbina je primljena."
-            : "Thanks! Order received.",
-      );
+      alert(unexpectedErrorMessage);
     }
   };
 

@@ -477,15 +477,15 @@ function calculateStarsForAmount_(totalAmount) {
 
 function addStarsToCard_(cardNumber, starsToAdd, reason) {
   console.log(`⭐ Adding ${starsToAdd} stars to card ${cardNumber}, reason: ${reason}`);
-  
+
   if (!cardNumber || starsToAdd <= 0) {
     console.log("❌ Invalid card number or stars amount");
     return false;
   }
-  
+
   try {
     ensureHeaders_();
-    
+
     // Записываем в StarsLog
     const starsLogSheet = getSheet_('StarsLog');
     starsLogSheet.appendRow([
@@ -494,13 +494,19 @@ function addStarsToCard_(cardNumber, starsToAdd, reason) {
       reason,
       new Date()
     ]);
-    
+
     console.log("✅ Stars logged successfully");
     return true;
   } catch (error) {
     console.log("❌ Error adding stars:", error);
     return false;
   }
+}
+
+// Обратная совместимость: старый код вызывал addStarsLog_
+// Используем существующую функцию добавления звёзд, чтобы не дублировать логику
+function addStarsLog_(cardNumber, starsToAdd, reason) {
+  return addStarsToCard_(cardNumber, starsToAdd, reason);
 }
 
 function getCardStars_(cardNumber) {
