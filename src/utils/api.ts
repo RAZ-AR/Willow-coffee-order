@@ -1,50 +1,57 @@
+// Новый API для работы с Supabase backend вместо GAS
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
 export async function postJSON<T = any>(url: string, body: any): Promise<T> {
-  const res = await fetch(url, {
+  const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
+
+  console.log('API Request:', fullUrl, body);
+
+  const res = await fetch(fullUrl, {
     method: "POST",
-    headers: { "Content-Type": "text/plain;charset=UTF-8" },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  
-  const text = await res.text();
-  console.log('API Response:', text);
-  
-  // Пробуем парсить как обычный JSON
-  try {
-    return JSON.parse(text);
-  } catch (jsonError) {
-    console.log('Direct JSON parse failed, trying HTML extraction');
-    
-    // Если GAS возвращает HTML с JSON внутри, извлекаем его из userHtml
-    const userHtmlMatch = text.match(/"userHtml":"(.*?)"/s);
-    if (userHtmlMatch) {
-      let userHtml = userHtmlMatch[1];
-      // Декодируем HTML entities более тщательно
-      userHtml = userHtml
-        .replace(/\\x3c/g, '<')
-        .replace(/\\x3e/g, '>')
-        .replace(/\\x22/g, '"')
-        .replace(/\\\//g, '/')
-        .replace(/\\"/g, '"')
-        .replace(/\\\\/g, '\\');
-        
-      console.log('Decoded userHtml:', userHtml);
-      
-      const jsonMatch = userHtml.match(/<pre id="json">(.*?)<\/pre>/s);
-      if (jsonMatch) {
-        console.log('Extracted JSON:', jsonMatch[1]);
-        return JSON.parse(jsonMatch[1]);
-      }
-    }
-    
-    // Альтернативный поиск напрямую в HTML
-    const directJsonMatch = text.match(/<pre id="json">(.*?)<\/pre>/s);
-    if (directJsonMatch) {
-      return JSON.parse(directJsonMatch[1]);
-    }
-    
-    throw new Error(`Invalid JSON response: ${text.slice(0, 200)}...`);
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error('API Error:', res.status, errorText);
+    throw new Error(`HTTP ${res.status}: ${errorText}`);
   }
+
+  const json = await res.json();
+  console.log('API Response:', json);
+
+  if (!json.ok) {
+    throw new Error(json.error || 'API error');
+  }
+
+  return json;
+}
+
+export async function getJSON<T = any>(url: string): Promise<T> {
+  const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
+
+  console.log('API GET Request:', fullUrl);
+
+  const res = await fetch(fullUrl, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error('API Error:', res.status, errorText);
+    throw new Error(`HTTP ${res.status}: ${errorText}`);
+  }
+
+  const json = await res.json();
+  console.log('API Response:', json);
+
+  if (!json.ok) {
+    throw new Error(json.error || 'API error');
+  }
+
+  return json;
 }
 
 export function cartAdd(prev: Record<string, number>, id: string, n = 1): Record<string, number> {
