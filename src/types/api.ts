@@ -26,10 +26,6 @@ export interface OrderResponse {
 }
 
 export interface OrderRequest {
-  action: "order";
-  initData: string | null;
-  user: TelegramUser | null;
-  card: string | null;
   total: number;
   when: "now" | "10" | "20";
   table: number | null;

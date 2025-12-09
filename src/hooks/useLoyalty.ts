@@ -36,7 +36,7 @@ export const useLoyalty = ({ tg, currentTgId, hasRealTgData, tgWebAppData }: Use
   const [lastRegisterResp, setLastRegisterResp] = useState<any>(null);
   const [lastStarsResp, setLastStarsResp] = useState<any>(null);
 
-  const api = useApi({ tg, currentTgId, hasRealTgData, tgWebAppData });
+  const api = useApi({ tg, currentTgId, hasRealTgData });
 
   // Очистка по флагу ?reset=1 ИЛИ автоматическая очистка кеша карт
   useEffect(() => {

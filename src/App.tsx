@@ -51,8 +51,7 @@ export default function App() {
   const api = useApi({
     tg,
     currentTgId,
-    hasRealTgData,
-    tgWebAppData: new URLSearchParams(window.location.search).get('tgWebAppData')
+    hasRealTgData
   });
 
   // Local UI state
@@ -127,7 +126,6 @@ export default function App() {
       console.log('📦 Order details:', { card: loyalty.cardNumber, total: cart.total, when, table, payment });
       
       const resp = await api.submitOrder({
-        card: loyalty.cardNumber || null,
         total: cart.total,
         when,
         table: when === "now" ? table : null,

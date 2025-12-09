@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
-import { BACKEND_URL } from '../constants';
 import { postJSON } from '../utils';
-export const useApi = ({ tg, currentTgId, hasRealTgData, tgWebAppData }) => {
+export const useApi = ({ tg, currentTgId, hasRealTgData }) => {
     const register = useCallback(async () => {
         if (!currentTgId) {
             console.log('❌ No currentTgId - skipping registration');
@@ -16,36 +15,36 @@ export const useApi = ({ tg, currentTgId, hasRealTgData, tgWebAppData }) => {
                 stars: 0
             };
         }
-        if (!BACKEND_URL)
-            return null;
         console.log('✅ Proceeding with registration for user:', currentTgId);
-        // Создаем user объект из currentTgId если его нет
+        // Создаем user объект
         let user = tg?.initDataUnsafe?.user || null;
         if (!user && currentTgId) {
-            user = { id: Number(currentTgId) };
+            user = {
+                id: Number(currentTgId),
+                first_name: 'User',
+                username: '',
+                language_code: 'en'
+            };
             console.log('✅ Created user object from currentTgId:', user);
         }
         const payload = {
-            action: "register",
-            initData: tg?.initData || tgWebAppData || null,
-            user: user,
-            ts: Date.now(),
+            user: user
         };
-        console.log('📤 Sending to backend:', payload);
+        console.log('📤 Sending to /api/register:', payload);
         try {
-            const resp = await postJSON(BACKEND_URL, payload);
+            const resp = await postJSON('/api/register', payload);
             return resp;
         }
         catch (error) {
             console.error('Registration error:', error);
             return { error: "network_or_cors" };
         }
-    }, [BACKEND_URL, currentTgId, tg, tgWebAppData]);
+    }, [currentTgId, tg]);
     const getStars = useCallback(async () => {
         if (!currentTgId) {
             return null;
         }
-        // Тестовый режим - возвращаем мок данные
+        // Тестовый режим
         if (currentTgId === "0000") {
             console.log('🧪 Test mode - returning mock stars data');
             return {
@@ -54,19 +53,16 @@ export const useApi = ({ tg, currentTgId, hasRealTgData, tgWebAppData }) => {
                 stars: 0
             };
         }
-        if (!BACKEND_URL) {
-            return null;
-        }
-        // Создаем user объект из currentTgId если его нет
+        // Создаем user объект
         let user = tg?.initDataUnsafe?.user || null;
         if (!user && currentTgId) {
-            user = { id: Number(currentTgId) };
+            user = {
+                id: Number(currentTgId)
+            };
         }
         try {
-            const resp = await postJSON(BACKEND_URL, {
-                action: "get_stars",
-                initData: tg?.initData || tgWebAppData || null,
-                user: user,
+            const resp = await postJSON('/api/stars', {
+                user: user
             });
             return resp;
         }
@@ -74,53 +70,51 @@ export const useApi = ({ tg, currentTgId, hasRealTgData, tgWebAppData }) => {
             console.error('Get stars error:', error);
             return null;
         }
-    }, [BACKEND_URL, currentTgId, tg, tgWebAppData]);
+    }, [currentTgId, tg]);
     const submitOrder = useCallback(async (orderData) => {
         if (!currentTgId) {
             console.log('❌ Submit order blocked - missing currentTgId');
             return null;
         }
-        // Тестовый режим - возвращаем мок данные
+        // Тестовый режим
         if (currentTgId === "0000") {
-            console.log('🧪 Test mode - returning mock order data');
-            const starsEarned = Math.floor((orderData.total || 0) / 100);
+            console.log('🧪 Test mode - returning mock order confirmation');
             return {
                 ok: true,
-                order_id: `TEST_ORD_${Date.now()}`,
+                order_id: `o_test_${Date.now()}`,
                 card: "0000",
-                stars: 0,
-                stars_earned: starsEarned
+                stars: 5,
+                stars_earned: 2
             };
         }
-        if (!BACKEND_URL) {
-            console.log('❌ Submit order blocked - missing BACKEND_URL');
-            return null;
-        }
-        // Создаем user объект из currentTgId если его нет
+        // Создаем user объект
         let user = tg?.initDataUnsafe?.user || null;
         if (!user && currentTgId) {
-            user = { id: Number(currentTgId) };
+            user = {
+                id: Number(currentTgId),
+                first_name: 'User',
+                username: '',
+                language_code: 'en'
+            };
         }
         const payload = {
-            order: orderData,
-            action: "submit_order",
-            initData: tg?.initData || tgWebAppData || null,
             user: user,
+            ...orderData
         };
-        console.log('📦 Submitting order:', payload);
+        console.log('📤 Sending order to /api/order:', payload);
         try {
-            const resp = await postJSON(BACKEND_URL, payload);
-            console.log('📦 Order response:', resp);
+            const resp = await postJSON('/api/order', payload);
             return resp;
         }
         catch (error) {
-            console.error('Submit order error:', error);
+            console.error('Order submission error:', error);
             return null;
         }
-    }, [BACKEND_URL, currentTgId, tg, tgWebAppData]);
+    }, [currentTgId, tg]);
     return {
         register,
         getStars,
         submitOrder
     };
 };
+export default useApi;

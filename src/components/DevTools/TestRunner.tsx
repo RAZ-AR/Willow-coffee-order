@@ -115,7 +115,6 @@ export const TestRunner: React.FC = () => {
     // Тест 6: Order Submission
     await runTest('6. Order Submission', async () => {
       const testOrder = {
-        card: loyalty.cardNumber,
         total: 100,
         when: "now" as const,
         table: 1,

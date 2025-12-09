@@ -1,10 +1,15 @@
 import 'dotenv/config';
 import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import registerRoute from './routes/register.js';
 import menuRoute from './routes/menu.js';
 import orderRoute from './routes/order.js';
 import starsRoute from './routes/stars.js';
 import webhookRoute from './routes/webhook.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -70,12 +75,14 @@ app.use('/api/stars', starsRoute);
 // Telegram Webhook
 app.use('/webhook', webhookRoute);
 
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({
-    ok: false,
-    error: 'Not found'
-  });
+// Serve static files from public directory (frontend)
+const publicPath = path.join(__dirname, '../public');
+app.use(express.static(publicPath));
+
+// SPA fallback - return index.html for all other routes
+app.get('*', (req, res) => {
+  const indexPath = path.join(publicPath, 'index.html');
+  res.sendFile(indexPath);
 });
 
 // Error handler
