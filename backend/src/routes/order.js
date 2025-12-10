@@ -149,49 +149,45 @@ router.post('/', async (req, res) => {
     // Получаем новый баланс звезд
     const totalStars = await getCardStars(cardNumber);
 
-    // Находим реального пользователя по номеру карты для отправки уведомлений
-    const { data: realUser } = await supabase
-      .from('users')
-      .select('telegram_id, first_name, username')
-      .eq('card_number', cardNumber)
-      .single();
-
-    // Создаем объект пользователя для уведомлений с РЕАЛЬНЫМ telegram_id
-    const notificationUser = realUser ? {
-      id: realUser.telegram_id,
-      first_name: realUser.first_name || user.first_name || 'User',
-      username: realUser.username || user.username || null
-    } : user;
-
     // Отправляем уведомления (с детальным логированием)
     console.log('📤 Sending notifications...');
     console.log('📤 Order user ID (from request):', user.id);
-    console.log('📤 Notification user ID (real Telegram ID):', notificationUser.id);
+    console.log('📤 Card number:', cardNumber);
     console.log('📤 Order:', { orderNumber, cardNumber, total, starsEarned, totalStars });
 
     try {
-      // Отправляем оба уведомления, но не блокируем при ошибке одного
-      const confirmResult = await sendOrderConfirmation(notificationUser, order, starsEarned, totalStars).catch(err => {
-        console.error('❌ Failed to send user confirmation:', err.message);
-        return { ok: false, error: err.message };
-      });
-
+      // ВСЕГДА отправляем в группу персонала
       const groupResult = await sendOrderToGroup(user, order, starsEarned, totalStars).catch(err => {
         console.error('❌ Failed to send group notification:', err.message);
         return { ok: false, error: err.message };
       });
 
-      console.log('📤 Confirmation result:', confirmResult);
       console.log('📤 Group notification result:', groupResult);
 
-      // Предупреждаем если личное сообщение не отправилось
-      if (!confirmResult.ok) {
-        console.warn('⚠️  User notification failed (user may not have started the bot yet)');
-      }
-
-      // Предупреждаем если групповое сообщение не отправилось
       if (!groupResult.ok) {
         console.warn('⚠️  Group notification failed');
+      }
+
+      // Отправляем личное уведомление ТОЛЬКО если ID выглядит как реальный Telegram ID
+      // Реальные Telegram ID обычно > 1000000
+      const isRealTelegramId = user.id > 1000000;
+      console.log('📤 Is real Telegram ID?', isRealTelegramId, '(ID:', user.id, ')');
+
+      if (isRealTelegramId) {
+        console.log('📤 Attempting to send personal notification to real user');
+        const confirmResult = await sendOrderConfirmation(user, order, starsEarned, totalStars).catch(err => {
+          console.error('❌ Failed to send user confirmation:', err.message);
+          return { ok: false, error: err.message };
+        });
+
+        console.log('📤 Confirmation result:', confirmResult);
+
+        if (!confirmResult.ok) {
+          console.warn('⚠️  User notification failed (user may not have started the bot yet)');
+        }
+      } else {
+        console.log('⚠️  Skipping personal notification (temporary ID detected)');
+        console.log('💡 User should run /start in @Willow_coffee_bot to link account and receive notifications');
       }
     } catch (err) {
       console.error('❌ Unexpected error sending notifications:', err);
