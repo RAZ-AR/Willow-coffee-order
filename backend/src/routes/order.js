@@ -149,14 +149,29 @@ router.post('/', async (req, res) => {
     // Получаем новый баланс звезд
     const totalStars = await getCardStars(cardNumber);
 
+    // Находим реального пользователя по номеру карты для отправки уведомлений
+    const { data: realUser } = await supabase
+      .from('users')
+      .select('telegram_id, first_name, username')
+      .eq('card_number', cardNumber)
+      .single();
+
+    // Создаем объект пользователя для уведомлений с РЕАЛЬНЫМ telegram_id
+    const notificationUser = realUser ? {
+      id: realUser.telegram_id,
+      first_name: realUser.first_name || user.first_name || 'User',
+      username: realUser.username || user.username || null
+    } : user;
+
     // Отправляем уведомления (с детальным логированием)
     console.log('📤 Sending notifications...');
-    console.log('📤 User ID:', user.id);
+    console.log('📤 Order user ID (from request):', user.id);
+    console.log('📤 Notification user ID (real Telegram ID):', notificationUser.id);
     console.log('📤 Order:', { orderNumber, cardNumber, total, starsEarned, totalStars });
 
     try {
       // Отправляем оба уведомления, но не блокируем при ошибке одного
-      const confirmResult = await sendOrderConfirmation(user, order, starsEarned, totalStars).catch(err => {
+      const confirmResult = await sendOrderConfirmation(notificationUser, order, starsEarned, totalStars).catch(err => {
         console.error('❌ Failed to send user confirmation:', err.message);
         return { ok: false, error: err.message };
       });
