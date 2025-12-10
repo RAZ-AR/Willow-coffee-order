@@ -7,6 +7,7 @@ import menuRoute from './routes/menu.js';
 import orderRoute from './routes/order.js';
 import starsRoute from './routes/stars.js';
 import webhookRoute from './routes/webhook.js';
+import testNotificationsRoute from './routes/test-notifications.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -64,6 +65,7 @@ app.use('/api/register', registerRoute);
 app.use('/api/menu', menuRoute);
 app.use('/api/order', orderRoute);
 app.use('/api/stars', starsRoute);
+app.use('/api/test-notifications', testNotificationsRoute);
 
 // Telegram Webhook
 app.use('/webhook', webhookRoute);
