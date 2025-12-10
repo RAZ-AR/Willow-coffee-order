@@ -62,41 +62,17 @@ router.post('/', async (req, res) => {
 
     console.log('👤 User lookup result:', { userData, userError });
 
-    let cardNumber;
-
     if (!userData) {
-      console.warn('⚠️  User not found in database, creating new user...');
-
-      // Генерируем новый номер карты
-      const newCardNumber = String(Math.floor(1000 + Math.random() * 9000));
-
-      // Создаем нового пользователя
-      const { data: newUser, error: createError } = await supabase
-        .from('users')
-        .insert([{
-          telegram_id: user.id,
-          card_number: newCardNumber,
-          first_name: user.first_name || 'User',
-          username: user.username || null,
-          language_code: user.language_code || 'en'
-        }])
-        .select()
-        .single();
-
-      if (createError) {
-        console.error('❌ Error creating user:', createError);
-        return res.status(500).json({
-          ok: false,
-          error: 'Failed to create user'
-        });
-      }
-
-      cardNumber = newUser.card_number;
-      console.log('✅ Created new user with card:', cardNumber);
-    } else {
-      cardNumber = userData.card_number;
-      console.log('✅ Found existing user with card:', cardNumber);
+      console.error('❌ User not found in database');
+      console.error('❌ User must run /start in @Willow_coffee_bot first');
+      return res.status(404).json({
+        ok: false,
+        error: 'User not registered. Please start the bot first: @Willow_coffee_bot'
+      });
     }
+
+    const cardNumber = userData.card_number;
+    console.log('✅ Found existing user with card:', cardNumber);
     const orderNumber = `o_${Date.now()}`;
 
     // Создаем заказ
