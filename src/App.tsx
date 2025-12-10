@@ -200,7 +200,9 @@ export default function App() {
         <MenuGrid
           items={filteredItems}
           lang={lang}
+          cart={cart.cart}
           onAddItem={(id) => cart.add(id, 1)}
+          onRemoveItem={cart.remove}
         />
       </div>
 
