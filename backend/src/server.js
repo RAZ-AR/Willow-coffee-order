@@ -74,8 +74,13 @@ app.use('/webhook', webhookRoute);
 const publicPath = path.join(__dirname, '../public');
 app.use(express.static(publicPath));
 
-// SPA fallback - return index.html for all other routes
-app.get('*', (req, res) => {
+// SPA fallback - return index.html for all other routes (excluding API and webhook)
+app.get('*', (req, res, next) => {
+  // Don't serve SPA for API routes or webhook
+  if (req.path.startsWith('/api/') || req.path.startsWith('/webhook') || req.path === '/health') {
+    return next();
+  }
+
   const indexPath = path.join(publicPath, 'index.html');
   res.sendFile(indexPath);
 });
