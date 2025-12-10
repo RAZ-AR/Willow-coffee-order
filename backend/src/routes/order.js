@@ -119,13 +119,23 @@ router.post('/', async (req, res) => {
     // Получаем новый баланс звезд
     const totalStars = await getCardStars(cardNumber);
 
-    // Отправляем уведомления (асинхронно, не блокируем ответ)
-    Promise.all([
-      sendOrderConfirmation(user, order, starsEarned, totalStars),
-      sendOrderToGroup(user, order, starsEarned, totalStars)
-    ]).catch(err => {
+    // Отправляем уведомления (с детальным логированием)
+    console.log('📤 Sending notifications...');
+    console.log('📤 User ID:', user.id);
+    console.log('📤 Order:', { orderNumber, cardNumber, total, starsEarned, totalStars });
+
+    try {
+      const [confirmResult, groupResult] = await Promise.all([
+        sendOrderConfirmation(user, order, starsEarned, totalStars),
+        sendOrderToGroup(user, order, starsEarned, totalStars)
+      ]);
+
+      console.log('📤 Confirmation result:', confirmResult);
+      console.log('📤 Group notification result:', groupResult);
+    } catch (err) {
       console.error('❌ Error sending notifications:', err);
-    });
+      console.error('❌ Full error:', JSON.stringify(err, null, 2));
+    }
 
     return res.json({
       ok: true,

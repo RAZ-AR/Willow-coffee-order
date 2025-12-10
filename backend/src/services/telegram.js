@@ -11,14 +11,21 @@ if (!BOT_TOKEN) {
  * Отправка HTML сообщения в Telegram
  */
 export async function sendHTMLMessage(chatId, html) {
+  console.log('📨 sendHTMLMessage called:', { chatId, hasBotToken: !!BOT_TOKEN });
+
   if (!BOT_TOKEN || !chatId) {
-    console.error('❌ Missing BOT_TOKEN or chatId');
+    console.error('❌ Missing BOT_TOKEN or chatId:', {
+      hasBotToken: !!BOT_TOKEN,
+      chatId,
+      botTokenLength: BOT_TOKEN?.length
+    });
     return { ok: false, error: 'Missing credentials' };
   }
 
   const url = `${TELEGRAM_API}/bot${BOT_TOKEN}/sendMessage`;
 
   try {
+    console.log('📨 Sending to Telegram API...');
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -31,6 +38,7 @@ export async function sendHTMLMessage(chatId, html) {
     });
 
     const result = await response.json();
+    console.log('📨 Telegram API response:', result);
 
     if (result.ok) {
       console.log(`✅ Message sent to ${chatId}`);
@@ -41,6 +49,7 @@ export async function sendHTMLMessage(chatId, html) {
     }
   } catch (error) {
     console.error('❌ Error sending Telegram message:', error);
+    console.error('❌ Error stack:', error.stack);
     return { ok: false, error: error.message };
   }
 }
