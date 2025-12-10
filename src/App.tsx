@@ -23,6 +23,8 @@ import {
   BottomBar,
 } from "./components";
 
+import { OrderConfirmationModal } from "./components/Order";
+
 import { TestRunner } from "./components/DevTools";
 
 /**
@@ -60,6 +62,7 @@ export default function App() {
   const [debugTapCount, setDebugTapCount] = useState<number>(0);
   const [showOrderConfirmation, setShowOrderConfirmation] = useState<boolean>(false);
   const [starsEarned, setStarsEarned] = useState<number>(0);
+  const [orderNumber, setOrderNumber] = useState<string>("");
 
   // Debug visibility
   const [debugVisible, setDebugVisible] = useState<boolean>(() => {
@@ -141,6 +144,8 @@ export default function App() {
 
       cart.clear();
       setStarsEarned(resp?.stars_earned || 0);
+      setOrderNumber(resp?.order_id || "");
+      setShowCart(false); // Close cart sheet
       setShowOrderConfirmation(true);
     } catch (error) {
       console.error("Order error:", error);
@@ -267,13 +272,13 @@ export default function App() {
 
       {debugVisible && <TestRunner />}
 
-      {/* TODO: OrderConfirmationModal component is missing */}
-      {/* <OrderConfirmationModal
+      <OrderConfirmationModal
         isOpen={showOrderConfirmation}
         lang={lang}
-        onClose={() => setShowOrderConfirmation(false)}
+        orderNumber={orderNumber}
         starsEarned={starsEarned}
-      /> */}
+        onClose={() => setShowOrderConfirmation(false)}
+      />
     </div>
   );
 }
