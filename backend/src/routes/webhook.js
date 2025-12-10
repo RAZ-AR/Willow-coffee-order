@@ -32,7 +32,7 @@ async function handleStartCommand(message) {
 
   console.log('🎯 /start command from user:', user.id);
 
-  // Проверяем существующего пользователя
+  // Проверяем существующего пользователя с РЕАЛЬНЫМ telegram_id
   const { data: existingUser } = await supabase
     .from('users')
     .select('*')
@@ -41,34 +41,92 @@ async function handleStartCommand(message) {
 
   let cardNumber;
   let stars;
+  let wasLinked = false;
 
   if (existingUser) {
+    // Пользователь уже существует
     cardNumber = existingUser.card_number;
     stars = await getCardStars(cardNumber);
+    console.log('✅ Existing user found with card:', cardNumber);
   } else {
-    // Создаем нового пользователя
-    cardNumber = String(Math.floor(Math.random() * 9000) + 1000);
+    // Новый пользователь - проверяем есть ли временные пользователи для связывания
+    console.log('📝 New user - checking for temporary users to link...');
 
-    const { error: insertError } = await supabase
+    // Ищем самого свежего пользователя с временным ID (созданного последним)
+    // Это будет пользователь который только что сделал заказ через Mini App
+    const { data: tempUsers } = await supabase
       .from('users')
-      .insert([{
-        telegram_id: user.id,
-        username: user.username || null,
-        first_name: user.first_name || null,
-        card_number: cardNumber,
-        language_code: user.language_code || 'en'
-      }]);
+      .select('*')
+      .neq('telegram_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(10);
 
-    if (insertError) {
-      console.error('❌ Error creating user:', insertError);
-      return;
+    console.log(`🔍 Found ${tempUsers?.length || 0} potential temporary users`);
+
+    // Проверяем какие из них "временные" (не существуют в Telegram)
+    // Временные ID обычно меньше 1 миллиона
+    const potentialTemp = tempUsers?.filter(u => u.telegram_id < 1000000) || [];
+
+    if (potentialTemp.length > 0) {
+      // Берем самого свежего
+      const tempUser = potentialTemp[0];
+      console.log(`🔗 Linking temp user ${tempUser.telegram_id} (card ${tempUser.card_number}) to real user ${user.id}`);
+
+      // Обновляем telegram_id временного пользователя на реальный
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({
+          telegram_id: user.id,
+          username: user.username || tempUser.username,
+          first_name: user.first_name || tempUser.first_name,
+          language_code: user.language_code || tempUser.language_code
+        })
+        .eq('telegram_id', tempUser.telegram_id);
+
+      if (updateError) {
+        console.error('❌ Error linking user:', updateError);
+        // Если не удалось обновить, создаем нового
+        cardNumber = String(Math.floor(Math.random() * 9000) + 1000);
+      } else {
+        cardNumber = tempUser.card_number;
+        stars = await getCardStars(cardNumber);
+        wasLinked = true;
+        console.log(`✅ Successfully linked! Card ${cardNumber} now belongs to real user ${user.id}`);
+      }
     }
 
-    stars = 0;
+    // Если не нашли временного пользователя или не смогли связать - создаем нового
+    if (!cardNumber) {
+      console.log('📝 Creating completely new user');
+      cardNumber = String(Math.floor(Math.random() * 9000) + 1000);
+
+      const { error: insertError } = await supabase
+        .from('users')
+        .insert([{
+          telegram_id: user.id,
+          username: user.username || null,
+          first_name: user.first_name || null,
+          card_number: cardNumber,
+          language_code: user.language_code || 'en'
+        }]);
+
+      if (insertError) {
+        console.error('❌ Error creating user:', insertError);
+        return;
+      }
+
+      stars = 0;
+    }
   }
 
   // Отправляем приветственное сообщение
   await sendWelcomeMessage(user, cardNumber, stars);
+
+  // Если была связка - отправляем дополнительное сообщение
+  if (wasLinked) {
+    const linkMessage = `✅ <b>Your account is linked!</b>\n\nYou will now receive notifications about your orders.\nYour card #${cardNumber} with ${stars} stars is active.`;
+    await sendHTMLMessage(user.id, linkMessage);
+  }
 }
 
 /**
