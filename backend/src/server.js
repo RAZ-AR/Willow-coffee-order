@@ -48,19 +48,12 @@ app.use((req, res, next) => {
   next();
 });
 
-// Health check
-app.get('/', (req, res) => {
+// Health check (only /health endpoint, root will serve frontend)
+app.get('/health', (req, res) => {
   res.json({
     ok: true,
     service: 'Willow Backend API',
     version: '2.0.0',
-    timestamp: new Date().toISOString()
-  });
-});
-
-app.get('/health', (req, res) => {
-  res.json({
-    ok: true,
     uptime: process.uptime(),
     timestamp: new Date().toISOString()
   });
