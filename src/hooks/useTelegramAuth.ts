@@ -56,33 +56,75 @@ export const useTelegramAuth = (): TelegramAuthResult => {
     const hasRealTgData = (!!realTg && (!!realTg.initData || !!realTg.initDataUnsafe?.user?.id)) || hasUrlParams || (forceMode && isTelegramEnv) || isTelegramEnv;
 
     // Определяем уникальный ID пользователя
-    let userId: string | number;
+    let userId: string | number | null = null;
 
-    // Сначала пробуем получить реальный ID из Telegram API
+    // Способ 1: Из initDataUnsafe
     if (realTg?.initDataUnsafe?.user?.id) {
       userId = realTg.initDataUnsafe.user.id;
-      console.log('✅ Got real Telegram user ID:', userId);
-    } else if (hasUrlParams && tgWebAppData) {
-      // Попробуем извлечь ID из URL параметров
+      console.log('✅ Got real Telegram user ID from initDataUnsafe:', userId);
+    }
+
+    // Способ 2: Парсинг initData строки
+    if (!userId && realTg?.initData) {
+      try {
+        const initDataParams = new URLSearchParams(realTg.initData);
+        const userJson = initDataParams.get('user');
+        if (userJson) {
+          const user = JSON.parse(userJson);
+          if (user.id) {
+            userId = user.id;
+            console.log('✅ Got real Telegram user ID from initData string:', userId);
+          }
+        }
+      } catch (e) {
+        console.log('⚠️ Failed to parse initData:', e);
+      }
+    }
+
+    // Способ 3: Из URL параметров (для Desktop)
+    if (!userId && hasUrlParams && tgWebAppData) {
       try {
         const params = new URLSearchParams(tgWebAppData);
         const user = JSON.parse(params.get('user') || '{}');
         if (user.id) {
           userId = user.id;
           console.log('✅ Got user ID from URL params:', userId);
-        } else {
-          userId = generateTestUserId();
-          console.log('🔄 Generated test user ID:', userId);
         }
       } catch (e) {
-        userId = generateTestUserId();
-        console.log('🔄 Generated test user ID (URL parse failed):', userId);
+        console.log('⚠️ Failed to parse URL params:', e);
       }
-    } else {
-      // Генерируем или берем из localStorage уникальный ID
+    }
+
+    // Способ 4: Проверяем window.Telegram.WebApp напрямую
+    if (!userId && typeof window !== 'undefined') {
+      try {
+        const tgWebApp = (window as any).Telegram?.WebApp;
+        if (tgWebApp) {
+          // Пробуем разные варианты
+          const possibleIds = [
+            tgWebApp.initDataUnsafe?.user?.id,
+            tgWebApp.WebAppUser?.id,
+            tgWebApp.user?.id,
+          ];
+
+          for (const id of possibleIds) {
+            if (id) {
+              userId = id;
+              console.log('✅ Got user ID from window.Telegram.WebApp:', userId);
+              break;
+            }
+          }
+        }
+      } catch (e) {
+        console.log('⚠️ Failed to get ID from window.Telegram:', e);
+      }
+    }
+
+    // Если ничего не нашли - используем fallback
+    if (!userId) {
       userId = generateTestUserId();
       console.log('🔄 Using generated/stored user ID:', userId);
-      console.log('⚠️  No real Telegram data detected - using fallback ID');
+      console.log('⚠️ No real Telegram data detected - using fallback ID');
     }
 
     console.log('🔍 Telegram detection:', {
