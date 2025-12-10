@@ -125,15 +125,31 @@ router.post('/', async (req, res) => {
     console.log('📤 Order:', { orderNumber, cardNumber, total, starsEarned, totalStars });
 
     try {
-      const [confirmResult, groupResult] = await Promise.all([
-        sendOrderConfirmation(user, order, starsEarned, totalStars),
-        sendOrderToGroup(user, order, starsEarned, totalStars)
-      ]);
+      // Отправляем оба уведомления, но не блокируем при ошибке одного
+      const confirmResult = await sendOrderConfirmation(user, order, starsEarned, totalStars).catch(err => {
+        console.error('❌ Failed to send user confirmation:', err.message);
+        return { ok: false, error: err.message };
+      });
+
+      const groupResult = await sendOrderToGroup(user, order, starsEarned, totalStars).catch(err => {
+        console.error('❌ Failed to send group notification:', err.message);
+        return { ok: false, error: err.message };
+      });
 
       console.log('📤 Confirmation result:', confirmResult);
       console.log('📤 Group notification result:', groupResult);
+
+      // Предупреждаем если личное сообщение не отправилось
+      if (!confirmResult.ok) {
+        console.warn('⚠️  User notification failed (user may not have started the bot yet)');
+      }
+
+      // Предупреждаем если групповое сообщение не отправилось
+      if (!groupResult.ok) {
+        console.warn('⚠️  Group notification failed');
+      }
     } catch (err) {
-      console.error('❌ Error sending notifications:', err);
+      console.error('❌ Unexpected error sending notifications:', err);
       console.error('❌ Full error:', JSON.stringify(err, null, 2));
     }
 
