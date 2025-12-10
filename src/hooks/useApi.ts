@@ -15,16 +15,6 @@ export const useApi = ({ tg, currentTgId, hasRealTgData }: UseApiParams) => {
       return null;
     }
 
-    // Тестовый режим - возвращаем мок данные
-    if (currentTgId === "0000") {
-      console.log('🧪 Test mode - returning mock registration data');
-      return {
-        ok: true,
-        card: "0000",
-        stars: 0
-      };
-    }
-
     console.log('✅ Proceeding with registration for user:', currentTgId);
 
     // Создаем user объект
@@ -59,16 +49,6 @@ export const useApi = ({ tg, currentTgId, hasRealTgData }: UseApiParams) => {
       return null;
     }
 
-    // Тестовый режим
-    if (currentTgId === "0000") {
-      console.log('🧪 Test mode - returning mock stars data');
-      return {
-        ok: true,
-        card: "0000",
-        stars: 0
-      };
-    }
-
     // Создаем user объект
     let user = tg?.initDataUnsafe?.user || null;
     if (!user && currentTgId) {
@@ -92,18 +72,6 @@ export const useApi = ({ tg, currentTgId, hasRealTgData }: UseApiParams) => {
     if (!currentTgId) {
       console.log('❌ Submit order blocked - missing currentTgId');
       return null;
-    }
-
-    // Тестовый режим
-    if (currentTgId === "0000") {
-      console.log('🧪 Test mode - returning mock order confirmation');
-      return {
-        ok: true,
-        order_id: `o_test_${Date.now()}`,
-        card: "0000",
-        stars: 5,
-        stars_earned: 2
-      };
     }
 
     // Создаем user объект

@@ -72,10 +72,10 @@ export const useTelegramAuth = () => {
             }
         }
         else {
-            // В dev режиме или для тестирования - фиксированный тестовый ID
-            userId = "0000";
-            console.log('🧪 Using test mode ID:', userId);
-            console.log('🔥 VERSION CHECK: useTelegramAuth.ts updated at 15.09.2025 17:45');
+            // Генерируем или берем из localStorage уникальный ID
+            userId = generateTestUserId();
+            console.log('🔄 Using generated/stored user ID:', userId);
+            console.log('⚠️  No real Telegram data detected - using fallback ID');
         }
         console.log('🔍 Telegram detection:', {
             realTg: !!realTg,
