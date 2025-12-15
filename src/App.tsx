@@ -34,6 +34,120 @@ import { TestRunner } from "./components/DevTools";
  * - TypeScript typed throughout
  */
 
+type HeroCopyKey = "title" | "subtitle" | "ctaPrimary" | "ctaSecondary" | "uspFast" | "uspStars" | "uspLanguage";
+
+const HERO_COPY: Record<Lang, Record<HeroCopyKey, string>> = {
+  ru: {
+    title: "Кофе Willow в один тап",
+    subtitle: "Заказывайте прямо в Telegram, копите звезды за каждый заказ и забирайте любимый кофе без очереди.",
+    ctaPrimary: "Выбрать кофе",
+    ctaSecondary: "О программе лояльности",
+    uspFast: "Быстрый заказ и выдача",
+    uspStars: "Звезды за каждый заказ",
+    uspLanguage: "Интерфейс на RU / SR / EN",
+  },
+  sr: {
+    title: "Willow kafa u jednom tiku",
+    subtitle: "Poručite direktno u Telegramu, skupljajte zvezdice za svaku porudžbinu i preuzmite kafu bez čekanja.",
+    ctaPrimary: "Izaberi kafu",
+    ctaSecondary: "Program lojalnosti",
+    uspFast: "Brza porudžbina i isporuka",
+    uspStars: "Zvezdice za svaku porudžbinu",
+    uspLanguage: "Interfejs na SR / RU / EN",
+  },
+  en: {
+    title: "Willow coffee in one tap",
+    subtitle: "Order right inside Telegram, earn stars for every cup and pick up your coffee without waiting.",
+    ctaPrimary: "Choose your coffee",
+    ctaSecondary: "Loyalty program",
+    uspFast: "Fast order & pickup",
+    uspStars: "Stars for every order",
+    uspLanguage: "Interface in EN / RU / SR",
+  },
+};
+
+interface HeroSectionProps {
+  lang: Lang;
+  onPrimaryCta: () => void;
+  cardNumber: string;
+  stars: number;
+  isLoadingCard: boolean;
+}
+
+const HeroSection: React.FC<HeroSectionProps> = ({
+  lang,
+  onPrimaryCta,
+  cardNumber,
+  stars,
+  isLoadingCard,
+}) => {
+  const t = HERO_COPY[lang];
+  const hasCard = cardNumber && /^\d{4}$/.test(cardNumber);
+
+  return (
+    <section className="mb-4 mt-3">
+      <div className="glass-panel px-4 py-3 rounded-3xl">
+        <div className="flex items-start gap-3">
+          <div className="shrink-0 w-11 h-11 rounded-2xl bg-accent/10 border border-accent/30 flex items-center justify-center text-xl">
+            ☕
+          </div>
+          <div className="flex-1">
+            <h1 className="text-[20px] font-semibold leading-snug">
+              {t.title}
+            </h1>
+            <p className="mt-1 text-xs text-white/80 leading-snug">
+              {t.subtitle}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-3 flex gap-2">
+          <button
+            onClick={onPrimaryCta}
+            className="flex-1 rounded-2xl bg-accent text-black font-semibold text-sm py-2.5 shadow-lg shadow-accent/40 active:scale-[0.97] transition-transform"
+          >
+            {t.ctaPrimary}
+          </button>
+        </div>
+
+        <div className="mt-3 flex flex-col gap-1.5 text-[11px] text-white/80">
+          <div className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+            <span>{t.uspFast}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+            <span>{t.uspStars}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+            <span>{t.uspLanguage}</span>
+          </div>
+        </div>
+
+        <div className="mt-3 flex items-center gap-2 text-[11px]">
+          <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-2xl bg-black/30 border border-white/10">
+            <span>💳</span>
+            <span className="font-medium">
+              {isLoadingCard ? "#…" : hasCard ? `#${cardNumber}` : "Нет карты"}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-2xl bg-black/30 border border-white/10">
+            <span>⭐</span>
+            <span className="font-medium">
+              {isLoadingCard
+                ? "—"
+                : hasCard
+                  ? `${stars} звёзд`
+                  : "Начните копить звезды"}
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
 export default function App() {
   // Custom hooks for all business logic
   const telegramAuth = useTelegramAuth();
@@ -159,10 +273,10 @@ export default function App() {
   // Show loading state
   if (menuLoading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-app-gradient flex items-center justify-center text-white">
         <div className="text-center">
-          <div className="text-lg font-semibold">{BRAND.name}</div>
-          <div className="text-sm text-gray-500 mt-2">Loading menu...</div>
+          <div className="text-lg font-semibold tracking-wide">{BRAND.name}</div>
+          <div className="text-sm text-white/70 mt-2">Loading menu...</div>
         </div>
       </div>
     );
@@ -171,8 +285,8 @@ export default function App() {
   // Show error state
   if (menuError) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center text-red-600">
+      <div className="min-h-screen bg-app-gradient flex items-center justify-center">
+        <div className="text-center text-red-200">
           <div className="text-lg font-semibold">Error loading menu</div>
           <div className="text-sm mt-2">{menuError}</div>
         </div>
@@ -181,7 +295,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-white text-black">
+    <div className="min-h-screen bg-app-gradient text-white">
       <Header
         cardNumber={loyalty.cardNumber}
         isLoadingCard={loyalty.isLoadingCard}
@@ -194,21 +308,36 @@ export default function App() {
       />
 
       <div className="px-4 pb-28 max-w-md mx-auto">
+        <HeroSection
+          lang={lang}
+          cardNumber={loyalty.cardNumber}
+          stars={loyalty.stars}
+          isLoadingCard={loyalty.isLoadingCard}
+          onPrimaryCta={() => {
+            const el = document.getElementById("willow-menu-start");
+            if (el) {
+              el.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+          }}
+        />
+
         <AdsCarousel ads={ads} />
 
-        <CategoryFilter
-          categories={categories}
-          activeCategory={activeCategory}
-          onCategoryChange={setActiveCategory}
-        />
+        <div id="willow-menu-start" className="mt-4">
+          <CategoryFilter
+            categories={categories}
+            activeCategory={activeCategory}
+            onCategoryChange={setActiveCategory}
+          />
 
-        <MenuGrid
-          items={filteredItems}
-          lang={lang}
-          cart={cart.cart}
-          onAddItem={(id) => cart.add(id, 1)}
-          onRemoveItem={cart.remove}
-        />
+          <MenuGrid
+            items={filteredItems}
+            lang={lang}
+            cart={cart.cart}
+            onAddItem={(id) => cart.add(id, 1)}
+            onRemoveItem={cart.remove}
+          />
+        </div>
       </div>
 
       <BottomBar
@@ -285,5 +414,9 @@ export default function App() {
 
 // Inject styles (keeping the self-contained approach)
 const style = document.createElement("style");
-style.innerHTML = `.no-scrollbar::-webkit-scrollbar{display:none}.no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}:root{--accent:${BRAND.accent}}`;
+style.innerHTML = `
+  .no-scrollbar::-webkit-scrollbar{display:none}
+  .no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
+  :root{--accent:${BRAND.accent}}
+`;
 document.head.appendChild(style);

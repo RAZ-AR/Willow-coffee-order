@@ -50,10 +50,10 @@ export const AdsCarousel: React.FC<AdsCarouselProps> = ({ ads }) => {
   }, [slides.length]);
 
   return (
-    <div className="mt-3">
+    <div className="mt-2">
       <div
         id="ads-slider"
-        className="relative w-full overflow-hidden rounded-3xl border border-gray-100 shadow-sm"
+        className="relative w-full overflow-hidden glass-panel rounded-3xl"
         style={{ height: 168 }}
       >
         <div
@@ -67,28 +67,38 @@ export const AdsCarousel: React.FC<AdsCarouselProps> = ({ ads }) => {
               className="w-full shrink-0 h-full"
               aria-label={slide.title}
             >
-              {slide.image ? (
-                <img
-                  src={slide.image}
-                  alt={slide.title}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full grid place-items-center bg-gray-50">
-                  {slide.title}
+              <div className="w-full h-full relative">
+                {slide.image ? (
+                  <img
+                    src={slide.image}
+                    alt={slide.title}
+                    className="w-full h-full object-cover opacity-90"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-black/60 via-black/40 to-black/70" />
+                )}
+                <div className="absolute inset-0 bg-black/25" />
+                <div className="absolute inset-0 flex flex-col justify-end p-3">
+                  <div className="text-xs uppercase tracking-wide text-accent mb-1">
+                    Promo
+                  </div>
+                  <div className="text-sm font-semibold text-white line-clamp-2">
+                    {slide.title}
+                  </div>
                 </div>
-              )}
+              </div>
             </a>
           ))}
         </div>
       </div>
-      
-      <div className="mt-2 flex items-center justify-center gap-1">
+      <div className="mt-2 flex items-center justify-center gap-1.5">
         {slides.map((_, i) => (
           <button
             key={i}
             onClick={() => setIdx(i)}
-            className={`w-2 h-2 rounded-full ${i === idx ? "bg-black" : "bg-gray-300"}`}
+            className={`h-1.5 rounded-full transition-all ${
+              i === idx ? "w-4 bg-accent" : "w-1.5 bg-white/40"
+            }`}
             aria-label={`Go to slide ${i + 1}`}
           />
         ))}

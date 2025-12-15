@@ -3,3 +3,19 @@
 @tailwind utilities;
 
 /* (необязательно) твои кастомные стили ниже */
+
+:root {
+  color-scheme: dark;
+}
+
+.bg-app-gradient {
+  @apply min-h-screen;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 55%),
+    radial-gradient(circle at top right, rgba(20, 184, 166, 0.22), transparent 55%),
+    radial-gradient(circle at bottom, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 1));
+}
+
+.glass-panel {
+  @apply bg-white/10 border border-white/10 backdrop-blur-xl shadow-xl;
+}

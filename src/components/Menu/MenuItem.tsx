@@ -34,21 +34,21 @@ export const MenuItem: React.FC<MenuItemProps> = ({ item, lang, quantity, onAdd,
   };
 
   return (
-    <div className="rounded-2xl border border-gray-100 shadow-sm overflow-hidden text-center p-3">
+    <div className="glass-panel rounded-3xl overflow-hidden text-center p-3 flex flex-col">
       <img
         src={item.image || ""}
         alt={titleByLang(item, lang)}
-        className="w-full h-36 object-cover bg-gray-100 mb-2"
+        className="w-full h-36 object-cover bg-black/20 mb-2"
       />
-      <div className="text-sm font-medium leading-tight truncate">
+      <div className="text-sm font-semibold leading-tight line-clamp-2 text-white">
         {titleByLang(item, lang)}
       </div>
       {item.volume && (
-        <div className="text-xs text-gray-500 mt-0.5">
+        <div className="text-xs text-white/60 mt-0.5">
           {item.volume}
         </div>
       )}
-      <div className="text-base font-semibold mt-1">
+      <div className="text-base font-semibold mt-1 text-accent">
         {currency(item.price)}
       </div>
 
@@ -56,16 +56,16 @@ export const MenuItem: React.FC<MenuItemProps> = ({ item, lang, quantity, onAdd,
         // Показываем кнопку "Add" если товара нет в корзине
         <button
           onClick={handleIncrement}
-          className="mt-3 w-full py-2 rounded-xl bg-black text-white text-sm font-medium"
+          className="mt-3 w-full py-2.5 rounded-2xl bg-accent text-black text-sm font-semibold shadow-md shadow-accent/40 active:scale-[0.97] transition-transform"
         >
           {addLabel(lang)}
         </button>
       ) : (
         // Показываем счетчик если товар уже в корзине
-        <div className="mt-3 flex items-center justify-center gap-3 bg-gray-100 rounded-xl py-2 px-3">
+        <div className="mt-3 flex items-center justify-center gap-3 bg-black/30 rounded-2xl py-2 px-3 border border-white/10">
           <button
             onClick={handleDecrement}
-            className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-lg font-bold"
+            className="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center text-lg font-bold border border-white/20 active:scale-95 transition-transform"
           >
             −
           </button>
@@ -74,7 +74,7 @@ export const MenuItem: React.FC<MenuItemProps> = ({ item, lang, quantity, onAdd,
           </span>
           <button
             onClick={handleIncrement}
-            className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-lg font-bold"
+            className="w-8 h-8 rounded-full bg-accent text-black flex items-center justify-center text-lg font-bold shadow-sm shadow-accent/40 active:scale-95 transition-transform"
           >
             +
           </button>

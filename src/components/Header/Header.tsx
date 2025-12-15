@@ -41,41 +41,45 @@ export const Header: React.FC<HeaderProps> = ({
   console.log('🔥 VERSION CHECK: Header.tsx updated at 15.09.2025 17:25');
 
   return (
-    <div className="sticky top-0 z-10 bg-white/90 backdrop-blur border-b">
-      <div className="max-w-md mx-auto px-4 py-3 flex items-center gap-2">
+    <div className="sticky top-0 z-20">
+      <div className="max-w-md mx-auto px-4 pt-3">
+        <div className="glass-panel rounded-3xl px-3 py-2 flex items-center gap-2">
         <button
           onClick={onLogoTap}
-          className="font-semibold text-lg active:opacity-60"
+          className="font-semibold text-lg tracking-wide active:opacity-70 text-white"
           aria-label="Toggle debug"
         >
           {BRAND.name}
         </button>
 
         {/* 💳 Card */}
-        <div className="ml-1 text-xs px-2 py-1 rounded-full border border-gray-200 text-gray-700">
-          💳 <b>{cardBadge}</b>
+        <div className="ml-1 text-[11px] px-2 py-1.5 rounded-2xl bg-black/40 border border-white/10 text-white flex items-center gap-1.5">
+          <span>💳</span>
+          <b>{cardBadge}</b>
         </div>
 
         {/* ⭐ Stars */}
-        <div className="ml-1 px-2 py-1 rounded-full bg-teal-50 text-teal-700 text-sm">
-          ⭐ {toNumber(stars, 0)}
+        <div className="ml-1 px-2 py-1.5 rounded-2xl bg-black/40 border border-white/10 text-[11px] text-amber-200 flex items-center gap-1.5">
+          <span>⭐</span>
+          <span className="font-semibold">{toNumber(stars, 0)}</span>
         </div>
 
         <div className="ml-auto flex items-center gap-2">
           <button
             onClick={onOpenCart}
-            className="relative w-9 h-9 rounded-full border flex items-center justify-center"
+            className="relative w-9 h-9 rounded-full border border-white/20 bg-black/30 flex items-center justify-center text-lg text-white active:scale-[0.96] transition-transform"
             aria-label="Open cart"
           >
             🛒
             {cartCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-black text-white text-[10px] leading-none px-1.5 py-1 rounded-full">
+              <span className="absolute -top-1 -right-1 bg-accent text-black text-[10px] leading-none px-1.5 py-1 rounded-full">
                 {cartCount}
               </span>
             )}
           </button>
           <LangPicker value={lang} onChange={setLang} />
         </div>
+      </div>
       </div>
     </div>
   );
