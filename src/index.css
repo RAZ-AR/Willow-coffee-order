@@ -11,11 +11,100 @@
 .bg-app-gradient {
   @apply min-h-screen;
   background:
-    radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 55%),
-    radial-gradient(circle at top right, rgba(20, 184, 166, 0.22), transparent 55%),
-    radial-gradient(circle at bottom, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 1));
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.18), transparent 60%),
+    radial-gradient(circle at top right, rgba(20, 184, 166, 0.25), transparent 60%),
+    radial-gradient(circle at bottom, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 1));
 }
 
 .glass-panel {
-  @apply bg-white/10 border border-white/10 backdrop-blur-xl shadow-xl;
+  @apply bg-white/10 border border-white/15 backdrop-blur-xl shadow-xl;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-panel:hover {
+  @apply bg-white/[0.12] border-white/20;
+  transform: translateY(-1px);
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.15), 0 8px 10px -6px rgb(0 0 0 / 0.15);
+}
+
+/* Smooth animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.4s ease-out;
+}
+
+.animate-slideUp {
+  animation: slideUp 0.5s ease-out;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.3s ease-out;
+}
+
+/* Button improvements */
+.btn-primary {
+  @apply rounded-2xl bg-accent text-black font-semibold text-sm py-2.5 shadow-lg shadow-accent/40;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-primary:active {
+  transform: scale(0.97);
+}
+
+.btn-primary:hover {
+  @apply shadow-xl shadow-accent/50;
+  transform: translateY(-2px);
+}
+
+/* Loading skeleton */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
 }

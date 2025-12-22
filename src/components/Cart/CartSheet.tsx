@@ -44,21 +44,21 @@ export const CartSheet: React.FC<CartSheetProps> = ({
 
   return (
     <div
-      className="fixed inset-0 bg-black/40 z-30 flex items-end sm:items-center sm:justify-center"
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 flex items-end sm:items-center sm:justify-center animate-fadeIn"
       onClick={onClose}
     >
       <div
-        className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl overflow-hidden"
+        className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl animate-slideUp"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-4 py-3 border-b flex items-center justify-between">
-          <div className="font-semibold">
-            {lang === "ru" ? "Корзина" : lang === "sr" ? "Korpa" : "Cart"}
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white">
+          <div className="font-bold text-lg text-gray-800">
+            {lang === "ru" ? "🛒 Корзина" : lang === "sr" ? "🛒 Korpa" : "🛒 Cart"}
           </div>
           <button
             onClick={onClose}
-            className="w-9 h-9 rounded-full border"
+            className="w-10 h-10 rounded-full border border-gray-200 hover:border-gray-300 hover:bg-gray-50 flex items-center justify-center text-gray-500 hover:text-gray-700 active:scale-95 transition-all"
             aria-label="Close"
           >
             ✕
@@ -66,35 +66,48 @@ export const CartSheet: React.FC<CartSheetProps> = ({
         </div>
 
         {/* Cart Items */}
-        <div className="max-h-[60vh] overflow-y-auto px-4 py-3 divide-y">
+        <div className="max-h-[60vh] overflow-y-auto px-5 py-4 divide-y divide-gray-100">
           {cartLines.length === 0 && (
-            <div className="py-8 text-center text-gray-500">
-              {lang === "ru"
-                ? "Пусто"
-                : lang === "sr"
-                  ? "Prazno"
-                  : "Cart is empty"}
+            <div className="py-16 text-center animate-scaleIn">
+              <div className="text-6xl mb-4 opacity-20">🛒</div>
+              <div className="text-gray-400 font-medium mb-1">
+                {lang === "ru"
+                  ? "Корзина пуста"
+                  : lang === "sr"
+                    ? "Korpa je prazna"
+                    : "Cart is empty"}
+              </div>
+              <div className="text-sm text-gray-400">
+                {lang === "ru"
+                  ? "Добавьте товары из меню"
+                  : lang === "sr"
+                    ? "Dodajte proizvode iz menija"
+                    : "Add items from the menu"}
+              </div>
             </div>
           )}
-          {cartLines.map(({ item, qty }) => (
-            <CartItem
-              key={item.id}
-              item={item}
-              qty={qty}
-              lang={lang}
-              onAdd={add}
-              onRemove={remove}
-            />
+          {cartLines.map(({ item, qty }, index) => (
+            <div key={item.id} className="animate-fadeIn" style={{ animationDelay: `${index * 50}ms` }}>
+              <CartItem
+                item={item}
+                qty={qty}
+                lang={lang}
+                onAdd={add}
+                onRemove={remove}
+              />
+            </div>
           ))}
         </div>
 
         {/* Order Form */}
         {cartLines.length > 0 && (
-          <OrderForm
-            lang={lang}
-            total={total}
-            onSubmit={handleOrderSubmit}
-          />
+          <div className="border-t border-gray-100">
+            <OrderForm
+              lang={lang}
+              total={total}
+              onSubmit={handleOrderSubmit}
+            />
+          </div>
         )}
       </div>
     </div>

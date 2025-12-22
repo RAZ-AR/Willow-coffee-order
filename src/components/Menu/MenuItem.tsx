@@ -34,47 +34,55 @@ export const MenuItem: React.FC<MenuItemProps> = ({ item, lang, quantity, onAdd,
   };
 
   return (
-    <div className="glass-panel rounded-3xl overflow-hidden text-center p-3 flex flex-col">
-      <img
-        src={item.image || ""}
-        alt={titleByLang(item, lang)}
-        className="w-full h-36 object-cover bg-black/20 mb-2"
-      />
-      <div className="text-sm font-semibold leading-tight line-clamp-2 text-white">
+    <div className="glass-panel rounded-3xl overflow-hidden text-center p-3 flex flex-col animate-fadeIn hover:scale-[1.02] transition-all duration-300">
+      <div className="relative overflow-hidden rounded-2xl mb-3">
+        <img
+          src={item.image || ""}
+          alt={titleByLang(item, lang)}
+          className="w-full h-36 object-cover bg-black/20 transition-transform duration-300 hover:scale-110"
+        />
+        {quantity > 0 && (
+          <div className="absolute top-2 right-2 bg-accent text-black text-xs font-bold px-2 py-1 rounded-full shadow-lg animate-scaleIn">
+            {quantity}
+          </div>
+        )}
+      </div>
+
+      <div className="text-sm font-semibold leading-tight line-clamp-2 text-white mb-1">
         {titleByLang(item, lang)}
       </div>
+
       {item.volume && (
-        <div className="text-xs text-white/60 mt-0.5">
+        <div className="text-xs text-white/70 mt-0.5 mb-1">
           {item.volume}
         </div>
       )}
-      <div className="text-base font-semibold mt-1 text-accent">
+
+      <div className="text-lg font-bold mt-auto mb-3 bg-gradient-to-r from-accent to-teal-400 bg-clip-text text-transparent">
         {currency(item.price)}
       </div>
 
       {quantity === 0 ? (
-        // Показываем кнопку "Add" если товара нет в корзине
         <button
           onClick={handleIncrement}
-          className="mt-3 w-full py-2.5 rounded-2xl bg-accent text-black text-sm font-semibold shadow-md shadow-accent/40 active:scale-[0.97] transition-transform"
+          className="w-full py-3 rounded-2xl bg-accent text-black text-sm font-bold shadow-lg shadow-accent/40 hover:shadow-xl hover:shadow-accent/50 active:scale-[0.97] transition-all duration-200 hover:-translate-y-0.5"
         >
           {addLabel(lang)}
         </button>
       ) : (
-        // Показываем счетчик если товар уже в корзине
-        <div className="mt-3 flex items-center justify-center gap-3 bg-black/30 rounded-2xl py-2 px-3 border border-white/10">
+        <div className="flex items-center justify-center gap-3 bg-black/40 rounded-2xl py-2.5 px-3 border border-white/20 backdrop-blur-sm animate-scaleIn">
           <button
             onClick={handleDecrement}
-            className="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center text-lg font-bold border border-white/20 active:scale-95 transition-transform"
+            className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center text-xl font-bold border border-white/30 active:scale-90 transition-all duration-200 hover:border-white/50"
           >
             −
           </button>
-          <span className="text-base font-semibold min-w-[24px] text-center">
+          <span className="text-lg font-bold min-w-[28px] text-center text-white">
             {quantity}
           </span>
           <button
             onClick={handleIncrement}
-            className="w-8 h-8 rounded-full bg-accent text-black flex items-center justify-center text-lg font-bold shadow-sm shadow-accent/40 active:scale-95 transition-transform"
+            className="w-9 h-9 rounded-full bg-accent hover:bg-teal-400 text-black flex items-center justify-center text-xl font-bold shadow-md shadow-accent/40 active:scale-90 transition-all duration-200 hover:shadow-lg hover:shadow-accent/50"
           >
             +
           </button>

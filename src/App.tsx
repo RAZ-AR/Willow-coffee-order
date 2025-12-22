@@ -85,61 +85,59 @@ const HeroSection: React.FC<HeroSectionProps> = ({
   const hasCard = cardNumber && /^\d{4}$/.test(cardNumber);
 
   return (
-    <section className="mb-4 mt-3">
-      <div className="glass-panel px-4 py-3 rounded-3xl">
-        <div className="flex items-start gap-3">
-          <div className="shrink-0 w-11 h-11 rounded-2xl bg-accent/10 border border-accent/30 flex items-center justify-center text-xl">
+    <section className="mb-5 mt-4 animate-slideUp">
+      <div className="glass-panel px-5 py-4 rounded-3xl">
+        <div className="flex items-start gap-3 mb-4">
+          <div className="shrink-0 w-12 h-12 rounded-2xl bg-gradient-to-br from-accent/20 to-accent/10 border border-accent/40 flex items-center justify-center text-2xl shadow-lg shadow-accent/20 animate-scaleIn">
             ☕
           </div>
           <div className="flex-1">
-            <h1 className="text-[20px] font-semibold leading-snug">
+            <h1 className="text-[21px] font-bold leading-snug text-white bg-gradient-to-r from-white to-white/90 bg-clip-text">
               {t.title}
             </h1>
-            <p className="mt-1 text-xs text-white/80 leading-snug">
+            <p className="mt-1.5 text-xs text-white/85 leading-relaxed">
               {t.subtitle}
             </p>
           </div>
         </div>
 
-        <div className="mt-3 flex gap-2">
-          <button
-            onClick={onPrimaryCta}
-            className="flex-1 rounded-2xl bg-accent text-black font-semibold text-sm py-2.5 shadow-lg shadow-accent/40 active:scale-[0.97] transition-transform"
-          >
-            {t.ctaPrimary}
-          </button>
+        <button
+          onClick={onPrimaryCta}
+          className="w-full rounded-2xl bg-gradient-to-r from-accent to-teal-400 text-black font-bold text-sm py-3 shadow-lg shadow-accent/50 hover:shadow-xl hover:shadow-accent/60 active:scale-[0.98] transition-all duration-200 hover:-translate-y-0.5"
+        >
+          {t.ctaPrimary}
+        </button>
+
+        <div className="mt-4 flex flex-col gap-2 text-xs text-white/90">
+          <div className="flex items-center gap-2 group">
+            <span className="w-1.5 h-1.5 rounded-full bg-accent shadow-sm shadow-accent/50 group-hover:scale-125 transition-transform" />
+            <span className="group-hover:text-white transition-colors">{t.uspFast}</span>
+          </div>
+          <div className="flex items-center gap-2 group">
+            <span className="w-1.5 h-1.5 rounded-full bg-accent shadow-sm shadow-accent/50 group-hover:scale-125 transition-transform" />
+            <span className="group-hover:text-white transition-colors">{t.uspStars}</span>
+          </div>
+          <div className="flex items-center gap-2 group">
+            <span className="w-1.5 h-1.5 rounded-full bg-accent shadow-sm shadow-accent/50 group-hover:scale-125 transition-transform" />
+            <span className="group-hover:text-white transition-colors">{t.uspLanguage}</span>
+          </div>
         </div>
 
-        <div className="mt-3 flex flex-col gap-1.5 text-[11px] text-white/80">
-          <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-            <span>{t.uspFast}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-            <span>{t.uspStars}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-            <span>{t.uspLanguage}</span>
-          </div>
-        </div>
-
-        <div className="mt-3 flex items-center gap-2 text-[11px]">
-          <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-2xl bg-black/30 border border-white/10">
+        <div className="mt-4 flex items-center gap-2 text-xs">
+          <div className="flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-black/40 border border-white/15 hover:border-white/25 transition-colors backdrop-blur-sm">
             <span>💳</span>
-            <span className="font-medium">
+            <span className="font-semibold text-white">
               {isLoadingCard ? "#…" : hasCard ? `#${cardNumber}` : "Нет карты"}
             </span>
           </div>
-          <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-2xl bg-black/30 border border-white/10">
+          <div className="flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-amber-400/30 hover:border-amber-400/50 transition-colors backdrop-blur-sm">
             <span>⭐</span>
-            <span className="font-medium">
+            <span className="font-semibold text-amber-100">
               {isLoadingCard
                 ? "—"
                 : hasCard
                   ? `${stars} звёзд`
-                  : "Начните копить звезды"}
+                  : "Начните копить"}
             </span>
           </div>
         </div>
@@ -274,9 +272,23 @@ export default function App() {
   if (menuLoading) {
     return (
       <div className="min-h-screen bg-app-gradient flex items-center justify-center text-white">
-        <div className="text-center">
-          <div className="text-lg font-semibold tracking-wide">{BRAND.name}</div>
-          <div className="text-sm text-white/70 mt-2">Loading menu...</div>
+        <div className="text-center animate-fadeIn">
+          <div className="mb-6 inline-block">
+            <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-accent/20 to-accent/10 border-2 border-accent/40 flex items-center justify-center text-4xl shadow-2xl shadow-accent/30 animate-bounce">
+              ☕
+            </div>
+          </div>
+          <div className="text-2xl font-bold tracking-wide mb-2 bg-gradient-to-r from-white to-white/90 bg-clip-text text-transparent">
+            {BRAND.name}
+          </div>
+          <div className="text-sm text-white/80 mt-2 flex items-center justify-center gap-2">
+            <div className="flex gap-1">
+              <span className="w-2 h-2 bg-accent rounded-full animate-pulse" style={{ animationDelay: '0ms' }}></span>
+              <span className="w-2 h-2 bg-accent rounded-full animate-pulse" style={{ animationDelay: '150ms' }}></span>
+              <span className="w-2 h-2 bg-accent rounded-full animate-pulse" style={{ animationDelay: '300ms' }}></span>
+            </div>
+            <span>Loading menu</span>
+          </div>
         </div>
       </div>
     );
@@ -285,10 +297,25 @@ export default function App() {
   // Show error state
   if (menuError) {
     return (
-      <div className="min-h-screen bg-app-gradient flex items-center justify-center">
-        <div className="text-center text-red-200">
-          <div className="text-lg font-semibold">Error loading menu</div>
-          <div className="text-sm mt-2">{menuError}</div>
+      <div className="min-h-screen bg-app-gradient flex items-center justify-center p-6">
+        <div className="max-w-md text-center animate-fadeIn">
+          <div className="mb-6 inline-block">
+            <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-red-500/20 to-red-600/10 border-2 border-red-400/40 flex items-center justify-center text-4xl shadow-2xl shadow-red-500/20">
+              ⚠️
+            </div>
+          </div>
+          <div className="text-2xl font-bold mb-3 text-red-200">
+            Ошибка загрузки
+          </div>
+          <div className="text-sm text-red-200/80 bg-red-500/10 border border-red-400/30 rounded-2xl p-4 backdrop-blur-sm">
+            {menuError}
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-6 px-6 py-3 bg-gradient-to-r from-accent to-teal-400 text-black font-bold rounded-xl shadow-lg shadow-accent/40 hover:shadow-xl hover:shadow-accent/60 active:scale-98 transition-all"
+          >
+            Попробовать снова
+          </button>
         </div>
       </div>
     );
