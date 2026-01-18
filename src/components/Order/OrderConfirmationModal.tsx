@@ -1,12 +1,27 @@
 import React from 'react';
 import type { Lang } from '../../types';
 
+interface OrderItem {
+  id: string;
+  title: string;
+  qty: number;
+  unit_price: number;
+}
+
 interface OrderConfirmationModalProps {
   isOpen: boolean;
   lang: Lang;
   starsEarned: number;
   orderNumber: string;
   onClose: () => void;
+  // New props for order details
+  items?: OrderItem[];
+  total?: number;
+  payment?: 'cash' | 'card' | 'stars';
+  when?: 'now' | '10' | '20';
+  table?: number | null;
+  cardNumber?: string;
+  botUsername?: string;
 }
 
 const texts = {
@@ -17,7 +32,20 @@ const texts = {
     earned: 'You earned',
     stars: 'stars',
     message: 'We will notify you when your order is ready',
-    close: 'Close'
+    close: 'Close',
+    items: 'Your order',
+    total: 'Total',
+    payment: 'Payment',
+    paymentCash: 'Cash',
+    paymentCard: 'Card',
+    paymentStars: 'Stars',
+    when: 'When',
+    whenNow: 'Now',
+    whenTable: 'table',
+    whenMinutes: 'min',
+    card: 'Loyalty card',
+    getNotifications: 'Get notifications',
+    openBot: 'Open bot to receive order updates'
   },
   ru: {
     title: 'Заказ оформлен!',
@@ -26,7 +54,20 @@ const texts = {
     earned: 'Вы получили',
     stars: 'звёзд',
     message: 'Мы уведомим вас, когда заказ будет готов',
-    close: 'Закрыть'
+    close: 'Закрыть',
+    items: 'Ваш заказ',
+    total: 'Итого',
+    payment: 'Оплата',
+    paymentCash: 'Наличные',
+    paymentCard: 'Карта',
+    paymentStars: 'Звёзды',
+    when: 'Когда',
+    whenNow: 'Сейчас',
+    whenTable: 'столик',
+    whenMinutes: 'мин',
+    card: 'Карта лояльности',
+    getNotifications: 'Получать уведомления',
+    openBot: 'Откройте бота для получения обновлений'
   },
   sr: {
     title: 'Porudžbina primljena!',
@@ -35,7 +76,20 @@ const texts = {
     earned: 'Osvojili ste',
     stars: 'zvezda',
     message: 'Obavestićemo vas kada bude gotovo',
-    close: 'Zatvori'
+    close: 'Zatvori',
+    items: 'Vaša porudžbina',
+    total: 'Ukupno',
+    payment: 'Plaćanje',
+    paymentCash: 'Gotovina',
+    paymentCard: 'Kartica',
+    paymentStars: 'Zvezdice',
+    when: 'Kada',
+    whenNow: 'Sada',
+    whenTable: 'sto',
+    whenMinutes: 'min',
+    card: 'Kartica lojalnosti',
+    getNotifications: 'Primaj obaveštenja',
+    openBot: 'Otvorite bota za ažuriranja'
   }
 };
 
@@ -44,11 +98,38 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
   lang,
   starsEarned,
   orderNumber,
-  onClose
+  onClose,
+  items = [],
+  total = 0,
+  payment,
+  when,
+  table,
+  cardNumber,
+  botUsername = 'Willow_coffee_bot'
 }) => {
   if (!isOpen) return null;
 
   const t = texts[lang] || texts.en;
+
+  const getPaymentLabel = () => {
+    switch (payment) {
+      case 'cash': return t.paymentCash;
+      case 'card': return t.paymentCard;
+      case 'stars': return t.paymentStars;
+      default: return '';
+    }
+  };
+
+  const getWhenLabel = () => {
+    if (when === 'now') {
+      return table ? `${t.whenNow}, ${t.whenTable} ${table}` : t.whenNow;
+    }
+    return `+${when} ${t.whenMinutes}`;
+  };
+
+  const handleOpenBot = () => {
+    window.open(`https://t.me/${botUsername}?start=order`, '_blank');
+  };
 
   return (
     <div
@@ -56,14 +137,14 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl animate-scale-in"
+        className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl animate-scale-in max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Success Icon */}
-        <div className="flex justify-center mb-6">
-          <div className="w-20 h-20 bg-gradient-to-br from-green-100 to-emerald-100 rounded-full flex items-center justify-center shadow-lg animate-bounce-in">
+        <div className="flex justify-center mb-4">
+          <div className="w-16 h-16 bg-gradient-to-br from-green-100 to-emerald-100 rounded-full flex items-center justify-center shadow-lg animate-bounce-in">
             <svg
-              className="w-12 h-12 text-green-600"
+              className="w-10 h-10 text-green-600"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -79,31 +160,83 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
         </div>
 
         {/* Title */}
-        <h2 className="text-3xl font-bold text-center mb-3 bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+        <h2 className="text-2xl font-bold text-center mb-2 bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
           {t.title}
         </h2>
 
         {/* Subtitle */}
-        <p className="text-gray-600 text-center mb-8 text-base">
+        <p className="text-gray-600 text-center mb-4 text-sm">
           {t.subtitle}
         </p>
 
-        {/* Order Number */}
-        <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-5 mb-4 border border-gray-200 shadow-sm">
-          <div className="text-sm font-medium text-gray-600 mb-2">{t.orderNumber}</div>
-          <div className="text-2xl font-bold font-mono bg-gradient-to-r from-teal-600 to-teal-500 bg-clip-text text-transparent">
-            #{orderNumber}
+        {/* Order Number & Card */}
+        <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-4 mb-3 border border-gray-200 shadow-sm">
+          <div className="flex justify-between items-center">
+            <div>
+              <div className="text-xs font-medium text-gray-500">{t.orderNumber}</div>
+              <div className="text-lg font-bold font-mono text-teal-600">
+                #{orderNumber}
+              </div>
+            </div>
+            {cardNumber && (
+              <div className="text-right">
+                <div className="text-xs font-medium text-gray-500">{t.card}</div>
+                <div className="text-lg font-bold font-mono text-gray-700">
+                  #{cardNumber}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
+        {/* Order Details (When & Payment) */}
+        {(when || payment) && (
+          <div className="flex gap-2 mb-3">
+            {when && (
+              <div className="flex-1 bg-blue-50 rounded-xl p-3 border border-blue-100">
+                <div className="text-xs font-medium text-blue-600">{t.when}</div>
+                <div className="text-sm font-bold text-blue-800">{getWhenLabel()}</div>
+              </div>
+            )}
+            {payment && (
+              <div className="flex-1 bg-purple-50 rounded-xl p-3 border border-purple-100">
+                <div className="text-xs font-medium text-purple-600">{t.payment}</div>
+                <div className="text-sm font-bold text-purple-800">{getPaymentLabel()}</div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Order Items */}
+        {items.length > 0 && (
+          <div className="bg-gray-50 rounded-2xl p-4 mb-3 border border-gray-200">
+            <div className="text-xs font-medium text-gray-500 mb-2">{t.items}</div>
+            <div className="space-y-2">
+              {items.map((item, idx) => (
+                <div key={idx} className="flex justify-between items-center text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-800">{item.title}</span>
+                    <span className="text-gray-400">×{item.qty}</span>
+                  </div>
+                  <span className="font-medium text-gray-700">{item.unit_price * item.qty} RSD</span>
+                </div>
+              ))}
+            </div>
+            <div className="border-t border-gray-200 mt-3 pt-3 flex justify-between items-center">
+              <span className="font-bold text-gray-700">{t.total}</span>
+              <span className="font-bold text-lg text-teal-600">{total} RSD</span>
+            </div>
+          </div>
+        )}
+
         {/* Stars Earned */}
         {starsEarned > 0 && (
-          <div className="bg-gradient-to-r from-amber-50 via-yellow-50 to-orange-50 rounded-2xl p-5 mb-6 border-2 border-amber-200 shadow-md animate-pulse-subtle">
+          <div className="bg-gradient-to-r from-amber-50 via-yellow-50 to-orange-50 rounded-2xl p-4 mb-3 border-2 border-amber-200 shadow-md animate-pulse-subtle">
             <div className="flex items-center justify-center gap-3">
-              <span className="text-4xl animate-spin-slow">⭐</span>
+              <span className="text-3xl animate-spin-slow">⭐</span>
               <div>
-                <div className="text-sm font-medium text-gray-700">{t.earned}</div>
-                <div className="text-2xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
+                <div className="text-xs font-medium text-gray-700">{t.earned}</div>
+                <div className="text-xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
                   +{starsEarned} {t.stars}
                 </div>
               </div>
@@ -111,15 +244,24 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
           </div>
         )}
 
-        {/* Message */}
-        <p className="text-center text-gray-600 mb-6 leading-relaxed">
-          {t.message}
+        {/* Open Bot Button */}
+        <button
+          onClick={handleOpenBot}
+          className="w-full py-3 mb-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-bold text-sm hover:shadow-lg hover:-translate-y-0.5 active:scale-98 transition-all shadow-md flex items-center justify-center gap-2"
+        >
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
+          </svg>
+          {t.getNotifications}
+        </button>
+        <p className="text-xs text-gray-500 text-center mb-4">
+          {t.openBot}
         </p>
 
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="w-full py-4 bg-gradient-to-r from-black to-gray-800 text-white rounded-xl font-bold text-base hover:shadow-xl hover:-translate-y-0.5 active:scale-98 transition-all shadow-lg"
+          className="w-full py-3 bg-gradient-to-r from-black to-gray-800 text-white rounded-xl font-bold text-sm hover:shadow-xl hover:-translate-y-0.5 active:scale-98 transition-all shadow-lg"
         >
           {t.close}
         </button>

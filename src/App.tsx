@@ -175,6 +175,15 @@ export default function App() {
   const [showOrderConfirmation, setShowOrderConfirmation] = useState<boolean>(false);
   const [starsEarned, setStarsEarned] = useState<number>(0);
   const [orderNumber, setOrderNumber] = useState<string>("");
+  // Order details for confirmation modal
+  const [orderDetails, setOrderDetails] = useState<{
+    items: Array<{ id: string; title: string; qty: number; unit_price: number }>;
+    total: number;
+    payment: 'cash' | 'card' | 'stars';
+    when: 'now' | '10' | '20';
+    table: number | null;
+    cardNumber: string;
+  } | null>(null);
 
   // Debug visibility
   const [debugVisible, setDebugVisible] = useState<boolean>(() => {
@@ -224,19 +233,20 @@ export default function App() {
       return;
     }
 
-    try {
-      const orderLines = Object.entries(cart.cart)
-        .filter(([_, qty]) => (qty || 0) > 0)
-        .map(([id, qty]) => {
-          const item = menu.find((i) => i.id === id)!;
-          return {
-            id,
-            title: titleByLang(item, lang),
-            qty,
-            unit_price: item.price,
-          };
-        });
+    // Build order lines before try/catch so it's available in both blocks
+    const orderLines = Object.entries(cart.cart)
+      .filter(([_, qty]) => (qty || 0) > 0)
+      .map(([id, qty]) => {
+        const item = menu.find((i) => i.id === id)!;
+        return {
+          id,
+          title: titleByLang(item, lang),
+          qty,
+          unit_price: item.price,
+        };
+      });
 
+    try {
       console.log('📦 Calling submitOrder with orderLines:', orderLines);
       console.log('📦 Order details:', { card: loyalty.cardNumber, total: cart.total, when, table, payment });
       
@@ -254,6 +264,16 @@ export default function App() {
         loyalty.updateStars(resp.stars);
       }
 
+      // Save order details for confirmation modal
+      setOrderDetails({
+        items: orderLines,
+        total: cart.total,
+        payment,
+        when,
+        table: when === "now" ? table : null,
+        cardNumber: resp?.card || loyalty.cardNumber
+      });
+
       cart.clear();
       setStarsEarned(resp?.stars_earned || 0);
       setOrderNumber(resp?.order_id || "");
@@ -261,7 +281,15 @@ export default function App() {
       setShowOrderConfirmation(true);
     } catch (error) {
       console.error("Order error:", error);
-      // Still clear cart and show success for UX
+      // Save order details even on error for UX
+      setOrderDetails({
+        items: orderLines,
+        total: cart.total,
+        payment,
+        when,
+        table: when === "now" ? table : null,
+        cardNumber: loyalty.cardNumber
+      });
       cart.clear();
       setStarsEarned(0);
       setShowOrderConfirmation(true);
@@ -433,7 +461,16 @@ export default function App() {
         lang={lang}
         orderNumber={orderNumber}
         starsEarned={starsEarned}
-        onClose={() => setShowOrderConfirmation(false)}
+        onClose={() => {
+          setShowOrderConfirmation(false);
+          setOrderDetails(null);
+        }}
+        items={orderDetails?.items}
+        total={orderDetails?.total}
+        payment={orderDetails?.payment}
+        when={orderDetails?.when}
+        table={orderDetails?.table}
+        cardNumber={orderDetails?.cardNumber}
       />
     </div>
   );
