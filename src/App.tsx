@@ -92,10 +92,10 @@ const HeroSection: React.FC<HeroSectionProps> = ({
             ☕
           </div>
           <div className="flex-1">
-            <h1 className="text-[21px] font-bold leading-snug text-white bg-gradient-to-r from-white to-white/90 bg-clip-text">
+            <h1 className="text-[21px] font-bold leading-snug text-gray-800">
               {t.title}
             </h1>
-            <p className="mt-1.5 text-xs text-white/85 leading-relaxed">
+            <p className="mt-1.5 text-xs text-gray-600 leading-relaxed">
               {t.subtitle}
             </p>
           </div>
@@ -108,31 +108,31 @@ const HeroSection: React.FC<HeroSectionProps> = ({
           {t.ctaPrimary}
         </button>
 
-        <div className="mt-4 flex flex-col gap-2 text-xs text-white/90">
+        <div className="mt-4 flex flex-col gap-2 text-xs text-gray-700">
           <div className="flex items-center gap-2 group">
             <span className="w-1.5 h-1.5 rounded-full bg-accent shadow-sm shadow-accent/50 group-hover:scale-125 transition-transform" />
-            <span className="group-hover:text-white transition-colors">{t.uspFast}</span>
+            <span className="group-hover:text-gray-900 transition-colors">{t.uspFast}</span>
           </div>
           <div className="flex items-center gap-2 group">
             <span className="w-1.5 h-1.5 rounded-full bg-accent shadow-sm shadow-accent/50 group-hover:scale-125 transition-transform" />
-            <span className="group-hover:text-white transition-colors">{t.uspStars}</span>
+            <span className="group-hover:text-gray-900 transition-colors">{t.uspStars}</span>
           </div>
           <div className="flex items-center gap-2 group">
             <span className="w-1.5 h-1.5 rounded-full bg-accent shadow-sm shadow-accent/50 group-hover:scale-125 transition-transform" />
-            <span className="group-hover:text-white transition-colors">{t.uspLanguage}</span>
+            <span className="group-hover:text-gray-900 transition-colors">{t.uspLanguage}</span>
           </div>
         </div>
 
         <div className="mt-4 flex items-center gap-2 text-xs">
-          <div className="flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-black/40 border border-white/15 hover:border-white/25 transition-colors backdrop-blur-sm">
+          <div className="flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-gray-100 border border-gray-300 hover:border-gray-400 transition-colors">
             <span>💳</span>
-            <span className="font-semibold text-white">
+            <span className="font-semibold text-gray-800">
               {isLoadingCard ? "#…" : hasCard ? `#${cardNumber}` : "Нет карты"}
             </span>
           </div>
-          <div className="flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-amber-400/30 hover:border-amber-400/50 transition-colors backdrop-blur-sm">
+          <div className="flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-amber-100 border border-amber-300 hover:border-amber-400 transition-colors">
             <span>⭐</span>
-            <span className="font-semibold text-amber-100">
+            <span className="font-semibold text-amber-800">
               {isLoadingCard
                 ? "—"
                 : hasCard
@@ -299,17 +299,17 @@ export default function App() {
   // Show loading state
   if (menuLoading) {
     return (
-      <div className="min-h-screen bg-app-gradient flex items-center justify-center text-white">
+      <div className="min-h-screen bg-app-gradient flex items-center justify-center text-gray-800">
         <div className="text-center animate-fadeIn">
           <div className="mb-6 inline-block">
             <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-accent/20 to-accent/10 border-2 border-accent/40 flex items-center justify-center text-4xl shadow-2xl shadow-accent/30 animate-bounce">
               ☕
             </div>
           </div>
-          <div className="text-2xl font-bold tracking-wide mb-2 bg-gradient-to-r from-white to-white/90 bg-clip-text text-transparent">
+          <div className="text-2xl font-bold tracking-wide mb-2 text-gray-800">
             {BRAND.name}
           </div>
-          <div className="text-sm text-white/80 mt-2 flex items-center justify-center gap-2">
+          <div className="text-sm text-gray-600 mt-2 flex items-center justify-center gap-2">
             <div className="flex gap-1">
               <span className="w-2 h-2 bg-accent rounded-full animate-pulse" style={{ animationDelay: '0ms' }}></span>
               <span className="w-2 h-2 bg-accent rounded-full animate-pulse" style={{ animationDelay: '150ms' }}></span>
@@ -350,7 +350,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-app-gradient text-white">
+    <div className="min-h-screen bg-app-gradient text-gray-800">
       <Header
         cardNumber={loyalty.cardNumber}
         isLoadingCard={loyalty.isLoadingCard}

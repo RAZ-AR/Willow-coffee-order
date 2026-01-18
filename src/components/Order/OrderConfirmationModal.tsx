@@ -137,7 +137,7 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl animate-scale-in max-h-[90vh] overflow-y-auto"
+        className="bg-form rounded-3xl p-6 max-w-sm w-full shadow-2xl animate-scale-in max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Success Icon */}
@@ -170,7 +170,7 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
         </p>
 
         {/* Order Number & Card */}
-        <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-4 mb-3 border border-gray-200 shadow-sm">
+        <div className="bg-white rounded-2xl p-4 mb-3 border border-gray-200 shadow-sm">
           <div className="flex justify-between items-center">
             <div>
               <div className="text-xs font-medium text-gray-500">{t.orderNumber}</div>
@@ -209,7 +209,7 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
 
         {/* Order Items */}
         {items.length > 0 && (
-          <div className="bg-gray-50 rounded-2xl p-4 mb-3 border border-gray-200">
+          <div className="bg-white rounded-2xl p-4 mb-3 border border-gray-200">
             <div className="text-xs font-medium text-gray-500 mb-2">{t.items}</div>
             <div className="space-y-2">
               {items.map((item, idx) => (

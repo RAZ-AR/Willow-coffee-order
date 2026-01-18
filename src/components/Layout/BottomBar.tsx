@@ -20,9 +20,9 @@ export const BottomBar: React.FC<BottomBarProps> = ({
       <div className="max-w-md mx-auto glass-panel rounded-3xl px-5 py-4 flex flex-col gap-2 shadow-2xl pointer-events-auto animate-slideUp">
         <div className="flex items-center justify-between">
           <div className="flex flex-col gap-0.5">
-            <span className="text-xs text-white/80 font-medium">Итого</span>
+            <span className="text-xs text-gray-700 font-medium">Итого</span>
             {total > 0 && (
-              <div className="text-[11px] text-white/70 flex items-center gap-1">
+              <div className="text-[11px] text-gray-600 flex items-center gap-1">
                 <span>⭐</span>
                 <span>+{starsToEarn} звёзд за заказ</span>
               </div>
@@ -38,7 +38,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
           className={`w-full rounded-2xl py-3.5 font-bold text-sm transition-all duration-200 ${
             hasItems
               ? "bg-gradient-to-r from-accent to-teal-400 text-black shadow-lg shadow-accent/50 hover:shadow-xl hover:shadow-accent/60 hover:-translate-y-0.5 active:scale-[0.98]"
-              : "bg-white/10 text-white/70 border-2 border-white/20 hover:border-white/30 hover:bg-white/15 active:scale-[0.97]"
+              : "bg-gray-100 text-gray-600 border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-200 active:scale-[0.97]"
           }`}
         >
           {hasItems ? (

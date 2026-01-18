@@ -48,11 +48,11 @@ export const CartSheet: React.FC<CartSheetProps> = ({
       onClick={onClose}
     >
       <div
-        className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl animate-slideUp"
+        className="bg-form w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl animate-slideUp"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white">
+        <div className="px-5 py-4 border-b border-gray-200 flex items-center justify-between bg-form">
           <div className="font-bold text-lg text-gray-800">
             {lang === "ru" ? "🛒 Корзина" : lang === "sr" ? "🛒 Korpa" : "🛒 Cart"}
           </div>

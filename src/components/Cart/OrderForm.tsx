@@ -23,7 +23,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({ lang, total, onSubmit }) =
   return (
     <div className="px-5 pb-5 pt-4">
       {/* When to prepare */}
-      <div className="p-4 rounded-2xl border border-gray-200 shadow-sm" style={{ backgroundColor: '#c7e8ea' }}>
+      <div className="p-4 rounded-2xl border border-gray-200 shadow-sm bg-form">
         <div className="text-sm font-bold mb-3 text-gray-700 flex items-center gap-2">
           <span>⏰</span>
           {lang === "ru"
@@ -87,7 +87,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({ lang, total, onSubmit }) =
       </div>
 
       {/* Payment method */}
-      <div className="mt-3 p-4 rounded-2xl border border-gray-200 shadow-sm" style={{ backgroundColor: '#c7e8ea' }}>
+      <div className="mt-3 p-4 rounded-2xl border border-gray-200 shadow-sm bg-form">
         <div className="text-sm font-bold mb-3 text-gray-700 flex items-center gap-2">
           <span>💳</span>
           {lang === "ru" ? "Оплата" : lang === "sr" ? "Plaćanje" : "Payment"}

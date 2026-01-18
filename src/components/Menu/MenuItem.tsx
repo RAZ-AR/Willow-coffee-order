@@ -48,12 +48,12 @@ export const MenuItem: React.FC<MenuItemProps> = ({ item, lang, quantity, onAdd,
         )}
       </div>
 
-      <div className="text-sm font-semibold leading-tight line-clamp-2 text-white mb-1">
+      <div className="text-sm font-semibold leading-tight line-clamp-2 text-gray-800 mb-1">
         {titleByLang(item, lang)}
       </div>
 
       {item.volume && (
-        <div className="text-xs text-white/70 mt-0.5 mb-1">
+        <div className="text-xs text-gray-600 mt-0.5 mb-1">
           {item.volume}
         </div>
       )}
@@ -70,14 +70,14 @@ export const MenuItem: React.FC<MenuItemProps> = ({ item, lang, quantity, onAdd,
           {addLabel(lang)}
         </button>
       ) : (
-        <div className="flex items-center justify-center gap-3 bg-black/40 rounded-2xl py-2.5 px-3 border border-white/20 backdrop-blur-sm animate-scaleIn">
+        <div className="flex items-center justify-center gap-3 bg-gray-100 rounded-2xl py-2.5 px-3 border border-gray-300 animate-scaleIn">
           <button
             onClick={handleDecrement}
-            className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center text-xl font-bold border border-white/30 active:scale-90 transition-all duration-200 hover:border-white/50"
+            className="w-9 h-9 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-700 flex items-center justify-center text-xl font-bold border border-gray-400 active:scale-90 transition-all duration-200 hover:border-gray-500"
           >
             −
           </button>
-          <span className="text-lg font-bold min-w-[28px] text-center text-white">
+          <span className="text-lg font-bold min-w-[28px] text-center text-gray-800">
             {quantity}
           </span>
           <button

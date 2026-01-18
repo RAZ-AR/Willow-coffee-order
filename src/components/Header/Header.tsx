@@ -46,20 +46,20 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="glass-panel rounded-3xl px-4 py-3 flex items-center gap-2 shadow-2xl">
         <button
           onClick={onLogoTap}
-          className="font-bold text-lg tracking-wide active:opacity-70 text-white hover:scale-105 transition-transform"
+          className="font-bold text-lg tracking-wide active:opacity-70 text-gray-800 hover:scale-105 transition-transform"
           aria-label="Toggle debug"
         >
           {BRAND.name}
         </button>
 
         {/* 💳 Card */}
-        <div className="ml-1 text-[11px] px-2.5 py-2 rounded-2xl bg-black/50 border border-white/15 hover:border-white/25 text-white flex items-center gap-1.5 backdrop-blur-sm transition-all">
+        <div className="ml-1 text-[11px] px-2.5 py-2 rounded-2xl bg-gray-100 border border-gray-300 hover:border-gray-400 text-gray-700 flex items-center gap-1.5 transition-all">
           <span>💳</span>
-          <b className="text-white">{cardBadge}</b>
+          <b className="text-gray-800">{cardBadge}</b>
         </div>
 
         {/* ⭐ Stars */}
-        <div className="ml-1 px-2.5 py-2 rounded-2xl bg-gradient-to-r from-amber-500/25 to-yellow-500/25 border border-amber-400/30 hover:border-amber-400/50 text-[11px] text-amber-100 flex items-center gap-1.5 backdrop-blur-sm transition-all">
+        <div className="ml-1 px-2.5 py-2 rounded-2xl bg-amber-100 border border-amber-300 hover:border-amber-400 text-[11px] text-amber-800 flex items-center gap-1.5 transition-all">
           <span>⭐</span>
           <span className="font-bold">{toNumber(stars, 0)}</span>
         </div>
@@ -67,7 +67,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="ml-auto flex items-center gap-2">
           <button
             onClick={onOpenCart}
-            className="relative w-10 h-10 rounded-full border-2 border-white/25 hover:border-white/40 bg-black/40 hover:bg-black/50 flex items-center justify-center text-lg text-white active:scale-95 hover:scale-105 transition-all backdrop-blur-sm shadow-lg"
+            className="relative w-10 h-10 rounded-full border-2 border-gray-300 hover:border-gray-400 bg-white hover:bg-gray-50 flex items-center justify-center text-lg text-gray-700 active:scale-95 hover:scale-105 transition-all shadow-lg"
             aria-label="Open cart"
           >
             🛒

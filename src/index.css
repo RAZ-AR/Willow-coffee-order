@@ -5,26 +5,28 @@
 /* (необязательно) твои кастомные стили ниже */
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
+  --bg-form: #c7e8ea;
+}
+
+.bg-form {
+  background-color: var(--bg-form);
 }
 
 .bg-app-gradient {
   @apply min-h-screen;
-  background:
-    radial-gradient(circle at top left, rgba(255, 255, 255, 0.18), transparent 60%),
-    radial-gradient(circle at top right, rgba(20, 184, 166, 0.25), transparent 60%),
-    radial-gradient(circle at bottom, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 1));
+  background-color: #c7e8ea;
 }
 
 .glass-panel {
-  @apply bg-white/10 border border-white/15 backdrop-blur-xl shadow-xl;
+  @apply bg-white border border-gray-200 backdrop-blur-xl shadow-xl;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glass-panel:hover {
-  @apply bg-white/[0.12] border-white/20;
+  @apply bg-white border-gray-300;
   transform: translateY(-1px);
-  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.15), 0 8px 10px -6px rgb(0 0 0 / 0.15);
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
 }
 
 /* Smooth animations */
