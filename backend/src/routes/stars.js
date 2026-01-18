@@ -34,17 +34,41 @@ router.post('/', async (req, res) => {
     }
 
     // Получаем данные пользователя
-    const { data: userData } = await supabase
+    let { data: userData } = await supabase
       .from('users')
       .select('card_number')
       .eq('telegram_id', user.id)
       .single();
 
+    // Если пользователя нет - создаём его с новой картой
     if (!userData) {
-      return res.status(404).json({
-        ok: false,
-        error: 'User not found'
-      });
+      console.log('📝 User not found - creating new user for:', user.id);
+
+      // Генерируем уникальный номер карты (4 цифры)
+      const newCardNumber = String(Math.floor(1000 + Math.random() * 9000));
+
+      const { data: newUser, error: createError } = await supabase
+        .from('users')
+        .insert([{
+          telegram_id: user.id,
+          card_number: newCardNumber,
+          first_name: user.first_name || 'User',
+          username: user.username || null,
+          language_code: user.language_code || 'en'
+        }])
+        .select()
+        .single();
+
+      if (createError) {
+        console.error('❌ Error creating user:', createError);
+        return res.status(500).json({
+          ok: false,
+          error: 'Failed to create user'
+        });
+      }
+
+      console.log('✅ Created new user with card:', newCardNumber);
+      userData = { card_number: newCardNumber };
     }
 
     const stars = await getCardStars(userData.card_number);
