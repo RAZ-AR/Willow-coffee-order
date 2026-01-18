@@ -11,7 +11,7 @@ export const OrderForm = ({ lang, total, onSubmit }) => {
             return;
         await onSubmit(when, table, payment);
     };
-    return (_jsxs("div", { className: "px-5 pb-5 pt-4", children: [_jsxs("div", { className: "p-4 rounded-2xl bg-gradient-to-br from-gray-50 to-white border border-gray-100 shadow-sm", children: [_jsxs("div", { className: "text-sm font-bold mb-3 text-gray-700 flex items-center gap-2", children: [_jsx("span", { children: "\u23F0" }), lang === "ru"
+    return (_jsxs("div", { className: "px-5 pb-5 pt-4", children: [_jsxs("div", { className: "p-4 rounded-2xl border border-gray-200 shadow-sm", style: { backgroundColor: '#c7e8ea' }, children: [_jsxs("div", { className: "text-sm font-bold mb-3 text-gray-700 flex items-center gap-2", children: [_jsx("span", { children: "\u23F0" }), lang === "ru"
                                 ? "Когда приготовить"
                                 : lang === "sr"
                                     ? "Kada pripremiti"
@@ -32,7 +32,7 @@ export const OrderForm = ({ lang, total, onSubmit }) => {
                                     .map((_, i) => i + 1)
                                     .map((n) => (_jsx("button", { onClick: () => setTable(n), className: `py-2.5 rounded-xl border-2 text-sm font-semibold transition-all duration-200 ${table === n
                                         ? "bg-gradient-to-r from-teal-500 to-teal-400 text-white border-teal-500 shadow-md shadow-teal-500/30 scale-110"
-                                        : "bg-white !text-black border-gray-200 hover:border-gray-300 hover:bg-gray-50 active:scale-95"}`, children: n }, n))) })] }))] }), _jsxs("div", { className: "mt-3 p-4 rounded-2xl bg-gradient-to-br from-gray-50 to-white border border-gray-100 shadow-sm", children: [_jsxs("div", { className: "text-sm font-bold mb-3 text-gray-700 flex items-center gap-2", children: [_jsx("span", { children: "\uD83D\uDCB3" }), lang === "ru" ? "Оплата" : lang === "sr" ? "Plaćanje" : "Payment"] }), _jsx("div", { className: "flex gap-2", children: [
+                                        : "bg-white !text-black border-gray-200 hover:border-gray-300 hover:bg-gray-50 active:scale-95"}`, children: n }, n))) })] }))] }), _jsxs("div", { className: "mt-3 p-4 rounded-2xl border border-gray-200 shadow-sm", style: { backgroundColor: '#c7e8ea' }, children: [_jsxs("div", { className: "text-sm font-bold mb-3 text-gray-700 flex items-center gap-2", children: [_jsx("span", { children: "\uD83D\uDCB3" }), lang === "ru" ? "Оплата" : lang === "sr" ? "Plaćanje" : "Payment"] }), _jsx("div", { className: "flex gap-2", children: [
                             {
                                 v: "cash",
                                 label: lang === "ru" ? "💵 Наличные" : lang === "sr" ? "💵 Keš" : "💵 Cash",
