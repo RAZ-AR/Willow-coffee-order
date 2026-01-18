@@ -47,7 +47,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({ lang, total, onSubmit }) =
               className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold border-2 transition-all duration-200 ${
                 when === option.v
                   ? "bg-gradient-to-r from-teal-500 to-teal-400 text-white border-teal-500 shadow-md shadow-teal-500/30 scale-105"
-                  : "border-gray-200 hover:border-gray-300 hover:bg-gray-50 active:scale-95"
+                  : "bg-white text-gray-800 border-gray-200 hover:border-gray-300 hover:bg-gray-50 active:scale-95"
               }`}
             >
               {option.label}
@@ -75,7 +75,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({ lang, total, onSubmit }) =
                     className={`py-2.5 rounded-xl border-2 text-sm font-semibold transition-all duration-200 ${
                       table === n
                         ? "bg-gradient-to-r from-teal-500 to-teal-400 text-white border-teal-500 shadow-md shadow-teal-500/30 scale-110"
-                        : "border-gray-200 hover:border-gray-300 hover:bg-gray-50 active:scale-95"
+                        : "bg-white text-gray-800 border-gray-200 hover:border-gray-300 hover:bg-gray-50 active:scale-95"
                     }`}
                   >
                     {n}
@@ -115,7 +115,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({ lang, total, onSubmit }) =
               className={`flex-1 px-3 py-2.5 rounded-xl text-xs font-semibold border-2 transition-all duration-200 ${
                 payment === option.v
                   ? "bg-gradient-to-r from-teal-500 to-teal-400 text-white border-teal-500 shadow-md shadow-teal-500/30 scale-105"
-                  : "border-gray-200 hover:border-gray-300 hover:bg-gray-50 active:scale-95"
+                  : "bg-white text-gray-800 border-gray-200 hover:border-gray-300 hover:bg-gray-50 active:scale-95"
               }`}
             >
               {option.label}
