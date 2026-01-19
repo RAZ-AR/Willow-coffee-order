@@ -4,22 +4,34 @@ export async function postJSON(url, body) {
     // For GAS backend, all requests go to BACKEND_URL with action parameter
     const fullUrl = url.startsWith('http') ? url : BACKEND_URL;
     console.log('API Request:', fullUrl, body);
-    const res = await fetch(fullUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-    });
-    if (!res.ok) {
-        const errorText = await res.text();
-        console.error('API Error:', res.status, errorText);
-        throw new Error(`HTTP ${res.status}: ${errorText}`);
+    try {
+        const res = await fetch(fullUrl, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain" }, // GAS works better with text/plain
+            body: JSON.stringify(body),
+            redirect: 'follow', // Follow GAS redirects
+        });
+        console.log('API Response status:', res.status, res.statusText);
+        const text = await res.text();
+        console.log('API Response text:', text);
+        let json;
+        try {
+            json = JSON.parse(text);
+        }
+        catch (parseError) {
+            console.error('Failed to parse response as JSON:', parseError);
+            throw new Error('Invalid JSON response from server');
+        }
+        console.log('API Response parsed:', json);
+        if (!json.ok) {
+            throw new Error(json.error || 'API error');
+        }
+        return json;
     }
-    const json = await res.json();
-    console.log('API Response:', json);
-    if (!json.ok) {
-        throw new Error(json.error || 'API error');
+    catch (fetchError) {
+        console.error('Fetch error:', fetchError);
+        throw fetchError;
     }
-    return json;
 }
 export async function getJSON(url) {
     const fullUrl = url.startsWith('http') ? url : BACKEND_URL;
