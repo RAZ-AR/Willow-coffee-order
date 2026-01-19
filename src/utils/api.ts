@@ -1,8 +1,9 @@
-// Новый API для работы с Supabase backend вместо GAS
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+// API для работы с Google Apps Script backend
+import { BACKEND_URL } from '../constants';
 
 export async function postJSON<T = any>(url: string, body: any): Promise<T> {
-  const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
+  // For GAS backend, all requests go to BACKEND_URL with action parameter
+  const fullUrl = url.startsWith('http') ? url : BACKEND_URL;
 
   console.log('API Request:', fullUrl, body);
 
@@ -29,7 +30,7 @@ export async function postJSON<T = any>(url: string, body: any): Promise<T> {
 }
 
 export async function getJSON<T = any>(url: string): Promise<T> {
-  const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
+  const fullUrl = url.startsWith('http') ? url : BACKEND_URL;
 
   console.log('API GET Request:', fullUrl);
 

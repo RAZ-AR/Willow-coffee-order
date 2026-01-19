@@ -30,13 +30,14 @@ export const useApi = ({ tg, currentTgId, hasRealTgData }: UseApiParams) => {
     }
 
     const payload = {
+      action: 'register',
       user: user
     };
 
-    console.log('📤 Sending to /api/register:', payload);
+    console.log('📤 Sending register request:', payload);
 
     try {
-      const resp = await postJSON<RegisterResponse>('/api/register', payload);
+      const resp = await postJSON<RegisterResponse>('', payload);
       return resp;
     } catch (error) {
       console.error('Registration error:', error);
@@ -58,7 +59,8 @@ export const useApi = ({ tg, currentTgId, hasRealTgData }: UseApiParams) => {
     }
 
     try {
-      const resp = await postJSON<StarsResponse>('/api/stars', {
+      const resp = await postJSON<StarsResponse>('', {
+        action: 'stars',
         user: user
       });
       return resp;
@@ -86,14 +88,15 @@ export const useApi = ({ tg, currentTgId, hasRealTgData }: UseApiParams) => {
     }
 
     const payload = {
+      action: 'order',
       user: user,
       ...orderData
     };
 
-    console.log('📤 Sending order to /api/order:', payload);
+    console.log('📤 Sending order request:', payload);
 
     try {
-      const resp = await postJSON<OrderResponse>('/api/order', payload);
+      const resp = await postJSON<OrderResponse>('', payload);
       return resp;
     } catch (error) {
       console.error('Order submission error:', error);
